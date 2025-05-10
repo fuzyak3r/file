@@ -1,0 +1,596 @@
+/* Базовые стили */
+:root {
+    --primary-color: #3b7dc0;
+    --accent-color: #fe9e34;
+    --dark-color: #121212;
+    --light-color: #d1d4ff;
+    --background-color: #161618;
+    --text-color: #f1f1f9;
+    --border-color: rgba(209, 212, 255, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+    color: var(--primary-color);
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--accent-color);
+}
+
+/* Контейнер */
+.container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Кнопка */
+.btn {
+    display: inline-block;
+    background-color: var(--accent-color);
+    color: var(--dark-color);
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background-color: #ffaf55;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Шапка */
+header {
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    background-color: rgba(22, 22, 24, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+}
+
+.logo-image {
+    height: 40px;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+}
+
+.nav-links li {
+    margin: 0 15px;
+}
+
+.nav-links a {
+    color: var(--light-color);
+    font-weight: 500;
+    padding: 8px 0;
+    position: relative;
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover {
+    color: #ffffff;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+/* Стили для кнопки входа через Steam */
+.auth-container {
+    margin-left: 20px;
+}
+
+.steam-login-btn {
+    display: flex;
+    align-items: center;
+    background-color: #171a21;
+    color: #ffffff;
+    padding: 8px 15px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(209, 212, 255, 0.1);
+}
+
+.steam-login-btn:hover {
+    background-color: #2a475e;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.steam-login-btn i {
+    margin-right: 8px;
+    font-size: 18px;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+}
+
+.user-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.user-name {
+    color: #ffffff;
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.logout-btn {
+    color: rgba(209, 212, 255, 0.7);
+    font-size: 14px;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.logout-btn:hover {
+    color: #ffffff;
+}
+
+/* Гамбургер меню */
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 21px;
+    cursor: pointer;
+}
+
+.menu-toggle span {
+    height: 3px;
+    width: 100%;
+    background-color: var(--light-color);
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+/* Секция герой */
+.hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 20px;
+    overflow: hidden;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+#video-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(18, 18, 18, 0.7), rgba(18, 18, 18, 0.9));
+    z-index: 1;
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--dark-color);
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: var(--accent-color);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.hero h1 {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.hero p {
+    font-size: 1.25rem;
+    margin-bottom: 30px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    color: rgba(209, 212, 255, 0.9);
+}
+
+/* Секции */
+.section {
+    padding: 100px 0;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    margin-bottom: 50px;
+    text-align: center;
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 4px;
+    background-color: var(--accent-color);
+    margin: 20px auto 0;
+    border-radius: 2px;
+}
+
+/* Секция сообщества */
+.community-section {
+    padding: 100px 0;
+    background-color: rgba(22, 22, 24, 0.5);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.community-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.community-text {
+    flex: 1;
+    min-width: 300px;
+    padding-right: 40px;
+}
+
+.community-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.community-link {
+    display: flex;
+    align-items: center;
+    background-color: rgba(59, 125, 192, 0.1);
+    color: var(--light-color);
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(59, 125, 192, 0.3);
+}
+
+.community-link i {
+    margin-right: 10px;
+    font-size: 20px;
+}
+
+.community-link:hover {
+    background-color: rgba(59, 125, 192, 0.2);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    color: #ffffff;
+}
+
+/* Футер */
+footer {
+    background-color: rgba(18, 18, 18, 0.8);
+    padding: 60px 0 30px;
+    border-top: 1px solid var(--border-color);
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.footer-logo-image {
+    height: 40px;
+}
+
+.footer-links {
+    display: flex;
+    gap: 20px;
+}
+
+.footer-links a {
+    color: rgba(209, 212, 255, 0.7);
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: #ffffff;
+}
+
+.copyright {
+    text-align: center;
+    color: rgba(209, 212, 255, 0.5);
+    font-size: 14px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(209, 212, 255, 0.05);
+}
+
+/* Анимация появления */
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.fade-in.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Стили для уведомлений */
+#notification-container {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 300px;
+}
+
+.notification {
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.notification.error {
+    background-color: #c94c4c;
+    color: #fff;
+}
+
+.notification.info {
+    background-color: #4c90c9;
+    color: #fff;
+}
+
+.notification.success {
+    background-color: #4cc97a;
+    color: #fff;
+}
+
+.notification i {
+    margin-right: 10px;
+    font-size: 18px;
+}
+
+.notification span {
+    flex: 1;
+}
+
+.notification button {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* Стили для страницы ошибки */
+.error-container {
+    padding: 120px 20px 80px;
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.error-icon {
+    font-size: 60px;
+    color: #c94c4c;
+    margin-bottom: 30px;
+}
+
+.error-title {
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+.error-message {
+    font-size: 18px;
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.error-code {
+    font-size: 14px;
+    color: rgba(209, 212, 255, 0.6);
+    margin-bottom: 30px;
+}
+
+.error-stack {
+    text-align: left;
+    background-color: rgba(18, 18, 18, 0.8);
+    padding: 15px;
+    margin-bottom: 30px;
+    border-radius: 8px;
+    overflow: auto;
+    max-height: 300px;
+}
+
+.error-stack pre {
+    font-family: monospace;
+    font-size: 14px;
+    color: rgba(209, 212, 255, 0.8);
+}
+
+.back-button {
+    display: inline-block;
+    background-color: #3b7dc0;
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background-color: #2a5f9e;
+}
+
+/* Медиа-запросы */
+@media (max-width: 992px) {
+    .hero h1 {
+        font-size: 3rem;
+    }
+    
+    .community-text {
+        padding-right: 0;
+        margin-bottom: 30px;
+    }
+    
+    .community-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .menu-toggle {
+        display: flex;
+    }
+    
+    .nav-links {
+        display: none;
+        width: 200px;
+    }
+    
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+    
+    .section-title {
+        font-size: 2rem;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .auth-container {
+        margin: 15px 0;
+    }
+    
+    .steam-login-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .user-profile {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .user-avatar {
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+    
+    .user-name {
+        margin-right: 0;
+        margin-bottom: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero h1 {
+        font-size: 2rem;
+    }
+    
+    .hero p {
+        font-size: 1rem;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
