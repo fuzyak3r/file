@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кейсы - Counter-Strike: Reforge</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <img src="images/logo.png" alt="CS: Reforge" class="logo-image">
+                </div>
+                <ul class="nav-links">
+                    <li><a href="/">Главная</a></li>
+                    <li><a href="/cases" class="active">Кейсы</a></li>
+                    <li><a href="/#community">Сообщество</a></li>
+                    <li id="user-container">
+                        <!-- Will be filled by JS with user info or login button -->
+                        <a href="/auth/steam" class="steam-login">
+                            <i class="fab fa-steam"></i> Войти через Steam
+                        </a>
+                    </li>
+                </ul>
+                <div class="menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="content-container cases-container">
+            <h1 class="content-title">Открытие кейсов CS:GO</h1>
+            
+            <div class="cases-filter">
+                <button class="filter-btn active" data-year="all">Все кейсы</button>
+                <button class="filter-btn" data-year="2013">2013</button>
+                <button class="filter-btn" data-year="2014">2014</button>
+                <button class="filter-btn" data-year="2015">2015</button>
+                <button class="filter-btn" data-year="2016">2016</button>
+                <button class="filter-btn" data-year="2017">2017</button>
+            </div>
+            
+            <div class="user-coins" id="user-coins">
+                <i class="fas fa-coins"></i> <span id="coins-amount">0</span> монет
+            </div>
+            
+            <div class="cases-grid" id="cases-grid">
+                <!-- Cases will be loaded here -->
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Case Opening Modal -->
+        <div class="modal" id="case-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-case-name">Название кейса</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="case-image-container">
+                        <img id="modal-case-image" src="" alt="Case Image">
+                        <div class="case-price">
+                            <i class="fas fa-coins"></i> <span id="modal-case-price">250</span>
+                        </div>
+                    </div>
+                    
+                    <h3>Возможные предметы:</h3>
+                    <div class="items-container" id="modal-items-container">
+                        <!-- Items will be loaded here -->
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button id="open-case-btn" class="btn open-case-btn">
+                            <i class="fas fa-box-open"></i> Открыть кейс
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Case Opening Animation Modal -->
+        <div class="modal" id="opening-modal">
+            <div class="modal-content opening-modal-content">
+                <div class="opening-container">
+                    <div class="roulette-container">
+                        <div class="roulette" id="roulette">
+                            <!-- Items will be generated here -->
+                        </div>
+                        <div class="roulette-pointer"></div>
+                    </div>
+                    <div class="result-container" id="result-container" style="display: none;">
+                        <h2>Вы получили:</h2>
+                        <div class="result-item" id="result-item">
+                            <!-- Result will be shown here -->
+                        </div>
+                        <button class="btn" id="continue-btn">Продолжить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="images/logo.png" alt="CS: Reforge" class="footer-logo-image">
+                </div>
+                <div class="footer-links">
+                    <a href="rules.html">Правила</a>
+                    <a href="support.html">Поддержка</a>
+                    <a href="faq.html">FAQ</a>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2025 Counter-Strike: Reforge. Все права защищены.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle mobile menu
+            const menuToggle = document.querySelector('.menu-toggle');
+            const navLinks = document.querySelector('.nav-links');
+            
+            if (menuToggle && navLinks) {
+                menuToggle.addEventListener('click', function() {
+                    navLinks.classList.toggle('active');
+                });
+            }
+            
+            // Function to handle dropdown toggle
+            function setupProfileDropdown(profileElement, dropdownElement) {
+                if (!profileElement || !dropdownElement) return;
+                
+                // Toggle dropdown on click
+                profileElement.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropdownElement.classList.toggle('active');
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!profileElement.contains(e.target) && !dropdownElement.contains(e.target)) {
+                        dropdownElement.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Load user data
+            let userCoins = 0;
+            
+            async function loadUserData() {
+                try {
+                    const response = await fetch('/api/user');
+                    const data = await response.json();
+                    
+                    const userContainer = document.getElementById('user-container');
+                    const coinsElement = document.getElementById('coins-amount');
+                    
+                    if (data.authenticated && data.user) {
+                        userCoins = data.user.coins;
+                        
+                        if (coinsElement) {
+                            coinsElement.textContent = userCoins;
+                        }
+                        
+                        if (userContainer) {
+                            userContainer.innerHTML = `
+                                <div class="user-profile">
+                                    <img src="${data.user.photos[0].value}" alt="${data.user.displayName}" class="user-avatar">
+                                    <span class="user-name">${data.user.displayName}</span>
+                                </div>
+                                <div class="profile-dropdown">
+                                    <ul>
+                                        <li><a href="/profile"><i class="fas fa-user"></i> Профиль</a></li>
+                                        <li><a href="/inventory"><i class="fas fa-box-open"></i> Инвентарь</a></li>
+                                        <li><a href="/auth/logout"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
+                                    </ul>
+                                </div>
+                            `;
+                            
+                            // Setup dropdown functionality
+                            const profileElement = userContainer.querySelector('.user-profile');
+                            const dropdownElement = userContainer.querySelector('.profile-dropdown');
+                            setupProfileDropdown(profileElement, dropdownElement);
+                        }
+                        
+                        // Show the coins display
+                        document.getElementById('user-coins').style.display = 'flex';
+                    } else {
+                        // If not logged in, hide the coins display
+                        document.getElementById('user-coins').style.display = 'none';
+                    }
+                } catch (error) {
+                    console.error('Error loading user data:', error);
+                }
+            }
+            
+            // Load all cases
+            async function loadCases(year = 'all') {
+                const casesGrid = document.getElementById('cases-grid');
+                casesGrid.innerHTML = '<div class="spinner-container"><div class="spinner"></div></div>';
+                
+                try {
+                    let url = '/api/cases';
+                    if (year !== 'all') {
+                        url = `/api/cases/year/${year}`;
+                    }
+                    
+                    const response = await fetch(url);
+                    const cases = await response.json();
+                    
+                    if (cases.length === 0) {
+                        casesGrid.innerHTML = '<div class="no-cases">No cases found for this filter.</div>';
+                        return;
+                    }
+                    
+                    casesGrid.innerHTML = '';
+                    
+                    cases.forEach(caseItem => {
+                        const caseElement = document.createElement('div');
+                        caseElement.className = 'case-item';
+                        caseElement.dataset.id = caseItem.id;
+                        
+                        caseElement.innerHTML = `
+                            <div class="case-img-container">
+                                <img src="${caseItem.image}" alt="${caseItem.name}" class="case-img">
+                            </div>
+                            <div class="case-info">
+                                <h3 class="case-name">${caseItem.name}</h3>
+                                <div class="case-price-tag">
+                                    <i class="fas fa-coins"></i> ${caseItem.price}
+                                </div>
+                            </div>
+                        `;
+                        
+                        caseElement.addEventListener('click', () => openCaseModal(caseItem.id));
+                        
+                        casesGrid.appendChild(caseElement);
+                    });
+                } catch (error) {
+                    console.error('Error loading cases:', error);
+                    casesGrid.innerHTML = '<div class="error-message">Error loading cases. Please try again later.</div>';
+                }
+            }
+            
+            // Filter cases by year
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Load cases for the selected year
+                    const year = this.dataset.year;
+                    loadCases(year);
+                });
+            });
+            
+            // Case Modal Management
+            const caseModal = document.getElementById('case-modal');
+            const closeModal = document.querySelector('.close-modal');
+            
+            if (closeModal) {
+                closeModal.addEventListener('click', () => {
+                    caseModal.style.display = 'none';
+                });
+            }
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(e) {
+                if (e.target === caseModal) {
+                    caseModal.style.display = 'none';
+                }
+                
+                if (e.target === document.getElementById('opening-modal')) {
+                    document.getElementById('opening-modal').style.display = 'none';
+                }
+            });
+            
+            // Load case details and open modal
+            let currentCaseId = null;
+            let cachedCaseData = null;
+            
+            async function openCaseModal(caseId) {
+                currentCaseId = caseId;
+                
+                const modalCaseName = document.getElementById('modal-case-name');
+                const modalCaseImage = document.getElementById('modal-case-image');
+                const modalCasePrice = document.getElementById('modal-case-price');
+                const modalItemsContainer = document.getElementById('modal-items-container');
+                
+                // Show loading state
+                modalCaseName.textContent = 'Loading...';
+                modalCaseImage.src = '';
+                modalItemsContainer.innerHTML = '<div class="spinner"></div>';
+                caseModal.style.display = 'block';
+                
+                try {
+                    const response = await fetch(`/api/cases/${caseId}`);
+                    cachedCaseData = await response.json();
+                    
+                    modalCaseName.textContent = cachedCaseData.name;
+                    modalCaseImage.src = cachedCaseData.image;
+                    modalCasePrice.textContent = cachedCaseData.price;
+                    
+                    // Populate items by rarity
+                    modalItemsContainer.innerHTML = '';
+                    
+                    // Order rarities by significance
+                    const rarityOrder = ['rare_special', 'covert', 'classified', 'restricted', 'mil_spec', 'industrial', 'consumer'];
+                    
+                    rarityOrder.forEach(rarity => {
+                        if (cachedCaseData.items[rarity] && cachedCaseData.items[rarity].length > 0) {
+                            const rarityInfo = cachedCaseData.rarities[rarity];
+                            
+                            const raritySection = document.createElement('div');
+                            raritySection.className = 'rarity-section';
+                            
+                            const rarityTitle = document.createElement('div');
+                            rarityTitle.className = 'rarity-title';
+                            rarityTitle.style.color = rarityInfo.color;
+                            rarityTitle.textContent = rarityInfo.name;
+                            
+                            raritySection.appendChild(rarityTitle);
+                            
+                            const itemsGrid = document.createElement('div');
+                            itemsGrid.className = 'items-grid';
+                            
+                            cachedCaseData.items[rarity].forEach(item => {
+                                const itemElement = document.createElement('div');
+                                itemElement.className = 'item-card';
+                                itemElement.style.borderColor = rarityInfo.color;
+                                
+                                itemElement.innerHTML = `
+                                    <div class="item-img-container">
+                                        <img src="${item.image}" alt="${item.name}" class="item-img">
+                                    </div>
+                                    <div class="item-name" style="color: ${rarityInfo.color}">${item.name}</div>
+                                `;
+                                
+                                itemsGrid.appendChild(itemElement);
+                            });
+                            
+                            raritySection.appendChild(itemsGrid);
+                            modalItemsContainer.appendChild(raritySection);
+                        }
+                    });
+                    
+                    // Update open button status based on user coins
+                    const openButton = document.getElementById('open-case-btn');
+                    
+                    if (userCoins >= cachedCaseData.price) {
+                        openButton.disabled = false;
+                        openButton.textContent = `Открыть кейс за ${cachedCaseData.price} монет`;
+                    } else {
+                        openButton.disabled = true;
+                        openButton.textContent = `Недостаточно монет (нужно ${cachedCaseData.price})`;
+                    }
+                } catch (error) {
+                    console.error('Error loading case details:', error);
+                    modalItemsContainer.innerHTML = '<div class="error-message">Error loading case details. Please try again later.</div>';
+                }
+            }
+            
+            // Case opening functionality
+            const openCaseBtn = document.getElementById('open-case-btn');
+            const openingModal = document.getElementById('opening-modal');
+            const rouletteElement = document.getElementById('roulette');
+            const resultContainer = document.getElementById('result-container');
+            const resultItem = document.getElementById('result-item');
+            const continueBtn = document.getElementById('continue-btn');
+            
+            if (openCaseBtn) {
+                openCaseBtn.addEventListener('click', async function() {
+                    if (!currentCaseId) return;
+                    
+                    try {
+                        // Close the case details modal
+                        caseModal.style.display = 'none';
+                        
+                        // Open the case opening animation modal
+                        openingModal.style.display = 'block';
+                        
+                        // Show the roulette and hide results
+                        document.querySelector('.roulette-container').style.display = 'flex';
+                        resultContainer.style.display = 'none';
+                        
+                        // Make the API call to open the case FIRST before showing animation
+                        const response = await fetch(`/api/cases/open/${currentCaseId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'Failed to open case');
+                        }
+                        
+                        const result = await response.json();
+                        
+                        if (!result.success || !result.item) {
+                            throw new Error('Invalid response from server');
+                        }
+                        
+                        // Update user coins
+                        userCoins = result.remainingCoins;
+                        document.getElementById('coins-amount').textContent = userCoins;
+                        
+                        // Get the winning item
+                        const winningItem = result.item;
+                        
+                        // Make sure we have the rarity info
+                        if (!cachedCaseData) {
+                            const caseResponse = await fetch(`/api/cases/${currentCaseId}`);
+                            cachedCaseData = await caseResponse.json();
+                        }
+                        
+                        const rarityInfo = cachedCaseData.rarities[winningItem.rarity];
+                        
+                        // Now build the roulette with the server-provided items
+                        // and make sure the winning item appears in the center
+                        rouletteElement.innerHTML = '';
+                        
+                        // Prepare roulette items
+                        if (result.rollItems && result.rollItems.length > 0) {
+                            // Use server-provided items for the roulette
+                            result.rollItems.forEach(item => {
+                                if (!item || !item.rarity) return;
+                                
+                                const itemRarityInfo = cachedCaseData.rarities[item.rarity];
+                                
+                                const itemElement = document.createElement('div');
+                                itemElement.className = 'roulette-item';
+                                itemElement.style.borderColor = itemRarityInfo.color;
+                                
+                                itemElement.innerHTML = `
+                                    <img src="${item.image}" alt="${item.name}">
+                                    <div class="item-name" style="color: ${itemRarityInfo.color}">${item.name}</div>
+                                `;
+                                
+                                rouletteElement.appendChild(itemElement);
+                            });
+                        } else {
+                            // Fallback to locally generated items if server didn't provide any
+                            const itemPool = [];
+                            for (const rarity in cachedCaseData.items) {
+                                if (Array.isArray(cachedCaseData.items[rarity])) {
+                                    itemPool.push(...cachedCaseData.items[rarity]);
+                                }
+                            }
+                            
+                            for (let i = 0; i < 150; i++) {
+                                let itemToAdd;
+                                
+                                if (i === 75) { // Middle position
+                                    itemToAdd = winningItem;
+                                } else {
+                                    const randomItem = itemPool[Math.floor(Math.random() * itemPool.length)];
+                                    itemToAdd = randomItem;
+                                }
+                                
+                                const itemRarityInfo = cachedCaseData.rarities[itemToAdd.rarity];
+                                
+                                const itemElement = document.createElement('div');
+                                itemElement.className = 'roulette-item';
+                                itemElement.style.borderColor = itemRarityInfo.color;
+                                
+                                itemElement.innerHTML = `
+                                    <img src="${itemToAdd.image}" alt="${itemToAdd.name}">
+                                    <div class="item-name" style="color: ${itemRarityInfo.color}">${itemToAdd.name}</div>
+                                `;
+                                
+                                rouletteElement.appendChild(itemElement);
+                            }
+                        }
+                        
+                        // Start the animation
+                        rouletteElement.style.transition = 'none';
+                        rouletteElement.style.transform = 'translateX(0)';
+                        
+                        // Force reflow
+                        void rouletteElement.offsetWidth;
+                        
+                        // Calculate the target position for the animation
+                        let winningPosition = result.winningPosition || 80;
+                        if (winningPosition >= rouletteElement.children.length) {
+                            winningPosition = Math.floor(rouletteElement.children.length / 2);
+                        }
+                        
+                        const itemWidth = 150; // Width of each roulette item + margin
+                        const targetPosition = -(winningPosition * itemWidth - (window.innerWidth / 2 - itemWidth / 2));
+                        
+                        // Start the animation
+                        rouletteElement.style.transition = 'transform 5s cubic-bezier(0.15, 0.9, 0.3, 1)';
+                        rouletteElement.style.transform = `translateX(${targetPosition}px)`;
+                        
+                        // After animation completes, show the result
+                        setTimeout(() => {
+                            document.querySelector('.roulette-container').style.display = 'none';
+                            
+                            // Show the result - using EXACTLY the item returned from the server
+                            resultItem.innerHTML = `
+                                <div class="result-item-card" style="border-color: ${rarityInfo.color}">
+                                    <img src="${winningItem.image}" alt="${winningItem.name}" class="result-item-img">
+                                    <div class="result-item-name" style="color: ${rarityInfo.color}">${winningItem.name}</div>
+                                    <div class="result-item-rarity" style="color: ${rarityInfo.color}">${rarityInfo.name}</div>
+                                </div>
+                            `;
+                            
+                            resultContainer.style.display = 'flex';
+                        }, 5500);
+                        
+                    } catch (error) {
+                        console.error('Error opening case:', error);
+                        alert(error.message || 'Error opening case. Please try again later.');
+                        openingModal.style.display = 'none';
+                    }
+                });
+            }
+            
+            if (continueBtn) {
+                continueBtn.addEventListener('click', function() {
+                    openingModal.style.display = 'none';
+                });
+            }
+            
+            // Load initial data
+            loadUserData();
+            loadCases();
+        });
+    </script>
+</html>
