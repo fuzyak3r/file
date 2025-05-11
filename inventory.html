@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инвентарь - Counter-Strike: Reforge</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <img src="images/logo.png" alt="CS: Reforge" class="logo-image">
+                </div>
+                <ul class="nav-links">
+                    <li><a href="/">Главная</a></li>
+                    <li><a href="/cases">Кейсы</a></li>
+                    <li><a href="/#community">Сообщество</a></li>
+                    <li id="user-container">
+                        <!-- Will be filled by JS with user info or login button -->
+                    </li>
+                </ul>
+                <div class="menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="content-container inventory-container">
+            <h1 class="content-title">Ваш инвентарь</h1>
+            
+            <div class="user-coins" id="user-coins">
+                <i class="fas fa-coins"></i> <span id="coins-amount">0</span> монет
+            </div>
+            
+            <div class="inventory-filter">
+                <button class="filter-btn active" data-rarity="all">Все предметы</button>
+                <button class="filter-btn" data-rarity="rare_special" style="color: #ffae39;">Ножи & Перчатки</button>
+                <button class="filter-btn" data-rarity="covert" style="color: #eb4b4b;">Тайные</button>
+                <button class="filter-btn" data-rarity="classified" style="color: #d32ce6;">Засекреченные</button>
+                <button class="filter-btn" data-rarity="restricted" style="color: #8847ff;">Запрещенные</button>
+                <button class="filter-btn" data-rarity="mil_spec" style="color: #4b69ff;">Армейское качество</button>
+            </div>
+            
+            <div class="inventory-stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="total-items">0</div>
+                    <div class="stat-label">Всего предметов</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="knives-count">0</div>
+                    <div class="stat-label">Ножи & Перчатки</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="covert-count">0</div>
+                    <div class="stat-label">Тайные</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="classified-count">0</div>
+                    <div class="stat-label">Засекреченные</div>
+                </div>
+            </div>
+            
+            <div class="inventory-grid" id="inventory-grid">
+                <!-- Inventory items will be loaded here -->
+                <div class="spinner-container">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <div class="no-items" id="no-items" style="display: none;">
+                <div class="no-items-message">
+                    <i class="fas fa-box-open"></i>
+                    <h3>Ваш инвентарь пуст</h3>
+                    <p>Откройте кейсы, чтобы получить скины!</p>
+                    <a href="/cases" class="btn">Открыть кейсы</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Item Detail Modal -->
+        <div class="modal" id="item-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-item-name">Название предмета</h2>
+                    <span class="close-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="item-detail-container">
+                        <div class="item-detail-image">
+                            <img id="modal-item-image" src="" alt="Item Image">
+                        </div>
+                        <div class="item-detail-info">
+                            <div class="item-detail-rarity" id="modal-item-rarity">Редкость</div>
+                            <div class="item-detail-case" id="modal-item-case">Кейс</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="images/logo.png" alt="CS: Reforge" class="footer-logo-image">
+                </div>
+                <div class="footer-links">
+                    <a href="rules.html">Правила</a>
+                    <a href="support.html">Поддержка</a>
+                    <a href="faq.html">FAQ</a>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2025 Counter-Strike: Reforge. Все права защищены.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle mobile menu
+            const menuToggle = document.querySelector('.menu-toggle');
+            const navLinks = document.querySelector('.nav-links');
+            
+            if (menuToggle && navLinks) {
+                menuToggle.addEventListener('click', function() {
+                    navLinks.classList.toggle('active');
+                });
+            }
+            
+            // Function to handle dropdown toggle
+            function setupProfileDropdown(profileElement, dropdownElement) {
+                if (!profileElement || !dropdownElement) return;
+                
+                // Toggle dropdown on click
+                profileElement.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropdownElement.classList.toggle('active');
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!profileElement.contains(e.target) && !dropdownElement.contains(e.target)) {
+                        dropdownElement.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Load user data
+            async function loadUserData() {
+                try {
+                    const response = await fetch('/api/user');
+                    const data = await response.json();
+                    
+                    const userContainer = document.getElementById('user-container');
+                    const coinsElement = document.getElementById('coins-amount');
+                    
+                    if (data.authenticated && data.user) {
+                        if (coinsElement) {
+                            coinsElement.textContent = data.user.coins;
+                        }
+                        
+                        if (userContainer) {
+                            userContainer.innerHTML = `
+                                <div class="user-profile">
+                                    <img src="${data.user.photos[0].value}" alt="${data.user.displayName}" class="user-avatar">
+                                    <span class="user-name">${data.user.displayName}</span>
+                                </div>
+                                <div class="profile-dropdown">
+                                    <ul>
+                                        <li><a href="/profile"><i class="fas fa-user"></i> Профиль</a></li>
+                                        <li><a href="/inventory" class="active"><i class="fas fa-box-open"></i> Инвентарь</a></li>
+                                        <li><a href="/auth/logout"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
+                                    </ul>
+                                </div>
+                            `;
+                            
+                            // Setup dropdown functionality
+                            const profileElement = userContainer.querySelector('.user-profile');
+                            const dropdownElement = userContainer.querySelector('.profile-dropdown');
+                            setupProfileDropdown(profileElement, dropdownElement);
+                        }
+                    } else {
+                        // Redirect to login if not authenticated
+                        window.location.href = '/';
+                    }
+                } catch (error) {
+                    console.error('Error loading user data:', error);
+                }
+            }
+            
+            // Load inventory
+            let inventoryItems = [];
+            let cases = {};
+            
+            async function loadCases() {
+                try {
+                    const response = await fetch('/api/cases');
+                    const casesData = await response.json();
+                    
+                    // Create a map of case IDs to case names
+                    casesData.forEach(caseItem => {
+                        cases[caseItem.id] = caseItem.name;
+                    });
+                } catch (error) {
+                    console.error('Error loading cases:', error);
+                }
+            }
+            
+            async function loadInventory() {
+                const inventoryGrid = document.getElementById('inventory-grid');
+                const noItemsElement = document.getElementById('no-items');
+                
+                inventoryGrid.innerHTML = '<div class="spinner-container"><div class="spinner"></div></div>';
+                
+                try {
+                    const response = await fetch('/api/inventory');
+                    const data = await response.json();
+                    
+                    inventoryItems = data.inventory || [];
+                    
+                    // Update stats
+                    document.getElementById('total-items').textContent = inventoryItems.length;
+                    document.getElementById('knives-count').textContent = 
+                        inventoryItems.filter(item => item.rarity === 'rare_special').length;
+                    document.getElementById('covert-count').textContent = 
+                        inventoryItems.filter(item => item.rarity === 'covert').length;
+                    document.getElementById('classified-count').textContent = 
+                        inventoryItems.filter(item => item.rarity === 'classified').length;
+                    
+                    if (inventoryItems.length === 0) {
+                        inventoryGrid.innerHTML = '';
+                        noItemsElement.style.display = 'block';
+                        return;
+                    }
+                    
+                    noItemsElement.style.display = 'none';
+                    displayInventory(inventoryItems);
+                    
+                } catch (error) {
+                    console.error('Error loading inventory:', error);
+                    inventoryGrid.innerHTML = '<div class="error-message">Error loading inventory. Please try again later.</div>';
+                }
+            }
+            
+            function displayInventory(items) {
+                const inventoryGrid = document.getElementById('inventory-grid');
+                inventoryGrid.innerHTML = '';
+                
+                if (items.length === 0) {
+                    inventoryGrid.innerHTML = '<div class="no-filtered-items">No items found for this filter.</div>';
+                    return;
+                }
+                
+                items.forEach(item => {
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'inventory-item';
+                    itemElement.dataset.id = item.id;
+                    itemElement.dataset.rarity = item.rarity;
+                    
+                    itemElement.innerHTML = `
+                        <div class="inventory-item-img-container" style="border-color: ${item.rarityInfo.color}">
+                            <img src="${item.image}" alt="${item.name}" class="inventory-item-img">
+                        </div>
+                        <div class="inventory-item-info">
+                            <div class="inventory-item-name" style="color: ${item.rarityInfo.color}">${item.name}</div>
+                            <div class="inventory-item-rarity" style="color: ${item.rarityInfo.color}">${item.rarityInfo.name}</div>
+                        </div>
+                    `;
+                    
+                    itemElement.addEventListener('click', () => openItemModal(item));
+                    
+                    inventoryGrid.appendChild(itemElement);
+                });
+            }
+            
+            // Filter inventory by rarity
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    // Filter inventory
+                    const rarity = this.dataset.rarity;
+                    
+                    if (rarity === 'all') {
+                        displayInventory(inventoryItems);
+                    } else {
+                        const filteredItems = inventoryItems.filter(item => item.rarity === rarity);
+                        displayInventory(filteredItems);
+                    }
+                });
+            });
+            
+            // Item Modal Management
+            const itemModal = document.getElementById('item-modal');
+            const closeModal = document.querySelector('.close-modal');
+            
+            if (closeModal) {
+                closeModal.addEventListener('click', () => {
+                    itemModal.style.display = 'none';
+                });
+            }
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(e) {
+                if (e.target === itemModal) {
+                    itemModal.style.display = 'none';
+                }
+            });
+            
+            function openItemModal(item) {
+                const modalItemName = document.getElementById('modal-item-name');
+                const modalItemImage = document.getElementById('modal-item-image');
+                const modalItemRarity = document.getElementById('modal-item-rarity');
+                const modalItemCase = document.getElementById('modal-item-case');
+                
+                modalItemName.textContent = item.name;
+                modalItemName.style.color = item.rarityInfo.color;
+                
+                modalItemImage.src = item.image;
+                modalItemImage.alt = item.name;
+                
+                modalItemRarity.textContent = `Редкость: ${item.rarityInfo.name}`;
+                modalItemRarity.style.color = item.rarityInfo.color;
+                
+                modalItemCase.textContent = `Кейс: ${cases[item.case_id] || 'Unknown'}`;
+                
+                itemModal.style.display = 'block';
+            }
+            
+            // Load initial data
+            loadUserData();
+            loadCases().then(() => loadInventory());
+        });
+    </script>
+</html>

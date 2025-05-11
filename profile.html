@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - Counter-Strike: Reforge</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <img src="images/logo.png" alt="CS: Reforge" class="logo-image">
+                </div>
+                <ul class="nav-links">
+                    <li><a href="/">Главная</a></li>
+                    <li><a href="/cases">Кейсы</a></li>
+                    <li><a href="/#community">Сообщество</a></li>
+                    <li id="user-container">
+                        <!-- User profile will be inserted here via JavaScript -->
+                    </li>
+                </ul>
+                <div class="menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="content-container">
+            <h1 class="content-title">Ваш профиль</h1>
+            
+            <div class="user-coins" id="user-coins">
+                <i class="fas fa-coins"></i> <span id="coins-amount">0</span> монет
+            </div>
+            
+            <div class="content-section" id="profile-info">
+                <!-- Profile information will be inserted here -->
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+            
+            <div class="profile-stats-section">
+                <h2 class="section-subtitle">Ваша статистика</h2>
+                <div class="stats-cards" id="stats-cards">
+                    <!-- Stats will be inserted here -->
+                </div>
+            </div>
+            
+            <div class="profile-inventory-preview">
+                <div class="inventory-header">
+                    <h2 class="section-subtitle">Ваш инвентарь</h2>
+                    <a href="/inventory" class="btn btn-small">Полный инвентарь</a>
+                </div>
+                <div class="inventory-preview-grid" id="inventory-preview">
+                    <!-- Inventory preview will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="images/logo.png" alt="CS: Reforge" class="footer-logo-image">
+                </div>
+                <div class="footer-links">
+                    <a href="rules.html">Правила</a>
+                    <a href="support.html">Поддержка</a>
+                    <a href="faq.html">FAQ</a>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2025 Counter-Strike: Reforge. Все права защищены.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Function to handle dropdown toggle
+        function setupProfileDropdown(profileElement, dropdownElement) {
+            if (!profileElement || !dropdownElement) return;
+            
+            // Toggle dropdown on click
+            profileElement.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropdownElement.classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!profileElement.contains(e.target) && !dropdownElement.contains(e.target)) {
+                    dropdownElement.classList.remove('active');
+                }
+            });
+        }
+
+        // Fetch profile data
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/profile');
+                const data = await response.json();
+                
+                if (data.user) {
+                    const { user, stats, inventory, rarities } = data;
+                    
+                    // Update user coins
+                    document.getElementById('coins-amount').textContent = user.coins;
+                    
+                    // Update navigation
+                    const userContainer = document.getElementById('user-container');
+                    if (userContainer) {
+                        userContainer.innerHTML = `
+                            <div class="user-profile">
+                                <img src="${user.photos[0].value}" alt="${user.displayName}" class="user-avatar">
+                                <span class="user-name">${user.displayName}</span>
+                            </div>
+                            <div class="profile-dropdown">
+                                <ul>
+                                    <li><a href="/profile" class="active"><i class="fas fa-user"></i> Профиль</a></li>
+                                    <li><a href="/inventory"><i class="fas fa-box-open"></i> Инвентарь</a></li>
+                                    <li><a href="/auth/logout"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
+                                </ul>
+                            </div>
+                        `;
+                        
+                        // Setup dropdown functionality
+                        const profileElement = userContainer.querySelector('.user-profile');
+                        const dropdownElement = userContainer.querySelector('.profile-dropdown');
+                        setupProfileDropdown(profileElement, dropdownElement);
+                    }
+                    
+                    // Update profile info
+                    document.getElementById('profile-info').innerHTML = `
+                        <div class="profile-card">
+                            <div class="profile-header">
+                                <img src="${user.photos[0].value}" alt="${user.displayName}" class="profile-avatar">
+                                <div class="profile-details">
+                                    <h2>${user.displayName}</h2>
+                                    <div class="profile-status">Онлайн</div>
+                                    <a href="${user.profileUrl}" target="_blank" class="steam-profile-link">
+                                        <i class="fab fa-steam"></i> Профиль Steam
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Update stats
+                    const statsCards = document.getElementById('stats-cards');
+                    
+                    statsCards.innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-box-open"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value">${stats.totalCasesOpened}</div>
+                                <div class="stat-label">Открыто кейсов</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-cubes"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value">${inventory.total}</div>
+                                <div class="stat-label">Предметов в инвентаре</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-gem"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value">${inventory.byRarity.rare_special ? inventory.byRarity.rare_special.length : 0}</div>
+                                <div class="stat-label">Редких предметов</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <div class="stat-value">${new Date(user.lastLogin).toLocaleDateString()}</div>
+                                <div class="stat-label">Последний визит</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Update inventory preview - show up to 8 most rare items
+                    const inventoryPreview = document.getElementById('inventory-preview');
+                    const itemsToShow = [];
+                    
+                    // Order by rarity: rare_special > covert > classified > restricted > mil_spec
+                    const rarityOrder = ['rare_special', 'covert', 'classified', 'restricted', 'mil_spec'];
+                    
+                    // Get items by rarity priority
+                    for (const rarity of rarityOrder) {
+                        if (inventory.byRarity[rarity] && inventory.byRarity[rarity].length > 0) {
+                            itemsToShow.push(...inventory.byRarity[rarity]);
+                        }
+                        
+                        if (itemsToShow.length >= 8) break;
+                    }
+                    
+                    // Limit to 8 items
+                    const previewItems = itemsToShow.slice(0, 8);
+                    
+                    if (previewItems.length === 0) {
+                        inventoryPreview.innerHTML = `
+                            <div class="no-items-preview">
+                                <p>У вас пока нет предметов. Откройте кейсы, чтобы получить скины!</p>
+                                <a href="/cases" class="btn">Открыть кейсы</a>
+                            </div>
+                        `;
+                    } else {
+                        inventoryPreview.innerHTML = '';
+                        
+                        previewItems.forEach(item => {
+                            const rarityInfo = rarities[item.rarity];
+                            
+                            const itemElement = document.createElement('div');
+                            itemElement.className = 'inventory-preview-item';
+                            
+                            itemElement.innerHTML = `
+                                <div class="inventory-preview-img-container" style="border-color: ${rarityInfo.color}">
+                                    <img src="${item.image}" alt="${item.name}" class="inventory-preview-img">
+                                </div>
+                                <div class="inventory-preview-name" style="color: ${rarityInfo.color}">${item.name}</div>
+                            `;
+                            
+                            inventoryPreview.appendChild(itemElement);
+                        });
+                    }
+                    
+                } else {
+                    // Redirect to home if not authenticated
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Error fetching profile data:', error);
+                document.getElementById('profile-info').innerHTML = `
+                    <div class="error-message">
+                        Произошла ошибка при загрузке данных профиля. Пожалуйста, попробуйте позже.
+                    </div>
+                `;
+            }
+        });
+
+        // Toggle mobile menu
+        document.querySelector('.menu-toggle').addEventListener('click', () => {
+            document.querySelector('.nav-links').classList.toggle('active');
+        });
+    </script>
+</body>
+</html>
