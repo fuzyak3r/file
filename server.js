@@ -404,6 +404,72 @@ function initializeApp() {
         }
     });
 
+    // Добавляем новый API маршрут для профиля
+    app.get('/api/profile', isAuthenticated, async (req, res) => {
+        try {
+            const userId = req.user.steamId;
+            const user = await db.collection('users').findOne({ steamId: userId });
+            
+            if (!user) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            
+            // Получаем данные о редкости предметов
+            const rarities = await db.collection('rarities').find({}).toArray();
+            if (!rarities || rarities.length === 0) {
+                return res.status(500).json({ error: 'Rarity data not found' });
+            }
+            
+            const raritiesMap = {};
+            rarities.forEach(rarity => {
+                if (rarity && rarity.id) {
+                    raritiesMap[rarity.id] = rarity;
+                }
+            });
+            
+            // Формируем инвентарь с проверкой на null и undefined
+            const inventory = user.inventory || [];
+            
+            // Проверяем каждый предмет на наличие свойства rarity
+            const validInventory = inventory.filter(item => item && item.rarity);
+            
+            // Группируем предметы по редкости
+            const byRarity = {};
+            validInventory.forEach(item => {
+                if (!byRarity[item.rarity]) {
+                    byRarity[item.rarity] = [];
+                }
+                byRarity[item.rarity].push(item);
+            });
+            
+            // Получаем статистику открытия кейсов
+            const caseOpenings = await db.collection('case_openings')
+                .countDocuments({ userId: userId });
+            
+            res.json({
+                user: {
+                    steamId: user.steamId,
+                    displayName: user.displayName,
+                    photos: user.photos || [],
+                    profileUrl: user.profileUrl,
+                    coins: user.coins || 0,
+                    lastLogin: user.lastLogin || new Date()
+                },
+                stats: {
+                    totalCasesOpened: caseOpenings
+                },
+                inventory: {
+                    total: validInventory.length,
+                    byRarity: byRarity
+                },
+                rarities: raritiesMap
+            });
+        } catch (error) {
+            console.error('Error fetching profile data:', error);
+            res.status(500).json({ error: 'Internal server error while fetching profile data' });
+        }
+    });
+
     // Get all cases
     app.get('/api/cases', async (req, res) => {
         try {
@@ -466,90 +532,167 @@ function initializeApp() {
         }
     });
 
-    // Open case
+    // Исправленный маршрут для открытия кейса
     app.post('/api/cases/open/:caseId', isAuthenticated, async (req, res) => {
-        try {
-            const { caseId } = req.params;
-            const userId = req.user.steamId;
-            
-            const caseData = await db.collection('cases').findOne({ id: caseId });
-            if (!caseData) {
-                return res.status(404).json({ error: 'Case not found' });
-            }
-            
-            const user = await db.collection('users').findOne({ steamId: userId });
-            if (!user || user.coins < caseData.price) {
-                return res.status(400).json({ error: 'Not enough coins' });
-            }
-            
-            const items = await db.collection('items').find({ case_id: caseId }).toArray();
-            if (!items || items.length === 0) {
-                return res.status(404).json({ error: 'No items found in this case' });
-            }
-            
-            const rarityProbabilities = {
-                rare_special: 0.01,
-                covert: 0.04,
-                classified: 0.10,
-                restricted: 0.20,
-                mil_spec: 0.65
-            };
-            
-            const random = Math.random();
-            let selectedRarity = 'mil_spec';
-            let cumulativeProbability = 0;
-            
-            for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
-                cumulativeProbability += probability;
-                if (random <= cumulativeProbability) {
-                    selectedRarity = rarity;
-                    break;
-                }
-            }
-            
-            const itemsOfSelectedRarity = items.filter(item => item.rarity === selectedRarity);
-            let selectedItem;
-            
-            if (itemsOfSelectedRarity.length > 0) {
-                selectedItem = itemsOfSelectedRarity[Math.floor(Math.random() * itemsOfSelectedRarity.length)];
-            } else {
-                const milSpecItems = items.filter(item => item.rarity === 'mil_spec');
-                selectedItem = milSpecItems.length > 0 
-                    ? milSpecItems[Math.floor(Math.random() * milSpecItems.length)]
-                    : items[Math.floor(Math.random() * items.length)];
-            }
-            
-            const itemForInventory = {
-                ...selectedItem,
-                inventoryId: `${selectedItem.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-            };
-            
-            await db.collection('users').updateOne(
-                { steamId: userId },
-                { 
-                    $push: { inventory: itemForInventory },
-                    $inc: { coins: -caseData.price }
-                }
-            );
-            
-            await db.collection('case_openings').insertOne({
-                userId,
-                caseId,
-                itemId: selectedItem.id,
-                inventoryId: itemForInventory.inventoryId,
-                timestamp: new Date()
-            });
-            
-            res.json({
-                success: true,
-                item: itemForInventory,
-                remainingCoins: user.coins - caseData.price
-            });
-        } catch (error) {
-            console.error('Error opening case:', error);
-            res.status(500).json({ error: 'Internal server error' });
+    try {
+        const { caseId } = req.params;
+        if (!caseId) {
+            return res.status(400).json({ error: 'Case ID is required' });
         }
-    });
+        
+        const userId = req.user.steamId;
+        
+        const caseData = await db.collection('cases').findOne({ id: caseId });
+        if (!caseData) {
+            return res.status(404).json({ error: 'Case not found' });
+        }
+        
+        const user = await db.collection('users').findOne({ steamId: userId });
+        if (!user || user.coins < caseData.price) {
+            return res.status(400).json({ error: 'Not enough coins' });
+        }
+        
+        const items = await db.collection('items').find({ case_id: caseId }).toArray();
+        if (!items || items.length === 0) {
+            return res.status(404).json({ error: 'No items found in this case' });
+        }
+        
+        // Rarity probabilities
+        const rarityProbabilities = {
+            rare_special: 0.01,
+            covert: 0.04,
+            classified: 0.10,
+            restricted: 0.20,
+            mil_spec: 0.65
+        };
+        
+        // Select rarity
+        const random = Math.random();
+        let selectedRarity = 'mil_spec'; // Default
+        let cumulativeProbability = 0;
+        
+        for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
+            cumulativeProbability += probability;
+            if (random <= cumulativeProbability) {
+                selectedRarity = rarity;
+                break;
+            }
+        }
+        
+        // Проверяем наличие предметов с выбранной редкостью
+        let validItems = items.filter(item => item && typeof item === 'object' && item.rarity === selectedRarity);
+        
+        // Если не нашли предметы с выбранной редкостью, берем mil_spec или любые доступные
+        if (!validItems || validItems.length === 0) {
+            validItems = items.filter(item => item && typeof item === 'object' && item.rarity === 'mil_spec');
+            
+            // Если всё еще нет предметов, берем любые валидные предметы
+            if (!validItems || validItems.length === 0) {
+                validItems = items.filter(item => item && typeof item === 'object' && item.rarity);
+                
+                // Если вообще нет валидных предметов, ошибка
+                if (!validItems || validItems.length === 0) {
+                    return res.status(500).json({ error: 'No valid items found in this case' });
+                }
+            }
+        }
+        
+        // Выбираем случайный предмет из валидных
+        const selectedItem = validItems[Math.floor(Math.random() * validItems.length)];
+        
+        // Create unique item copy for inventory
+        if (!selectedItem || typeof selectedItem !== 'object') {
+            return res.status(500).json({ error: 'Selected item is invalid' });
+        }
+        
+        const itemForInventory = {
+            ...selectedItem,
+            inventoryId: `${selectedItem.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        };
+        
+        // Создаем массив предметов для прокрутки, гарантируя, что выигрышный предмет
+        // будет именно тем, который сохраняется в инвентарь
+        const rollItems = [];
+        const totalRollItems = 100; // Количество предметов в прокрутке
+        const winningPosition = 80; // Позиция, где появится выигрышный предмет
+        
+        for (let i = 0; i < totalRollItems; i++) {
+            if (i === winningPosition) {
+                // ВАЖНО: Используем тот же самый выбранный предмет, который будет добавлен в инвентарь
+                rollItems.push(selectedItem);
+            } else {
+                // Для остальных позиций генерируем случайные предметы
+                const randomRarity = Math.random();
+                let itemRarity = 'mil_spec';
+                let cumulative = 0;
+                
+                for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
+                    cumulative += probability;
+                    if (randomRarity <= cumulative) {
+                        itemRarity = rarity;
+                        break;
+                    }
+                }
+                
+                // Фильтруем валидные предметы выбранной редкости
+                const itemsOfRarity = items.filter(
+                    item => item && typeof item === 'object' && item.rarity === itemRarity
+                );
+                
+                let randomItem;
+                
+                if (itemsOfRarity && itemsOfRarity.length > 0) {
+                    randomItem = itemsOfRarity[Math.floor(Math.random() * itemsOfRarity.length)];
+                } else {
+                    // Если нет предметов такой редкости, берем любой валидный
+                    const allValidItems = items.filter(
+                        item => item && typeof item === 'object' && item.rarity
+                    );
+                    
+                    if (allValidItems && allValidItems.length > 0) {
+                        randomItem = allValidItems[Math.floor(Math.random() * allValidItems.length)];
+                    } else {
+                        // Если нет валидных предметов, используем выбранный предмет
+                        randomItem = selectedItem;
+                    }
+                }
+                
+                rollItems.push(randomItem);
+            }
+        }
+        
+        // Update user inventory and balance
+        await db.collection('users').updateOne(
+            { steamId: userId },
+            { 
+                $push: { inventory: itemForInventory },
+                $inc: { coins: -caseData.price }
+            }
+        );
+        
+        // Record case opening
+        await db.collection('case_openings').insertOne({
+            userId,
+            caseId,
+            itemId: selectedItem.id,
+            inventoryId: itemForInventory.inventoryId,
+            timestamp: new Date()
+        });
+        
+        // Send response with roll items and выигрышным предметом
+        res.json({
+            success: true,
+            rollItems: rollItems,
+            // Важно: используем то же имя поля, которое ожидает клиент (cases.html)
+            item: itemForInventory,
+            winningPosition: winningPosition,
+            remainingCoins: user.coins - caseData.price
+        });
+    } catch (error) {
+        console.error('Error opening case:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
     // Get user inventory
     app.get('/api/inventory', isAuthenticated, async (req, res) => {
@@ -590,135 +733,6 @@ function initializeApp() {
             res.status(500).json({ error: 'Internal server error while fetching inventory' });
         }
     });
-
-    // Get user profile data
-    app.post('/api/cases/open/:caseId', isAuthenticated, async (req, res) => {
-    try {
-        const { caseId } = req.params;
-        const userId = req.user.steamId;
-        
-        // Get case data
-        const caseData = await db.collection('cases').findOne({ id: caseId });
-        if (!caseData) {
-            return res.status(404).json({ error: 'Case not found' });
-        }
-        
-        // Check user balance
-        const user = await db.collection('users').findOne({ steamId: userId });
-        if (!user || user.coins < caseData.price) {
-            return res.status(400).json({ error: 'Not enough coins' });
-        }
-        
-        // Get case items
-        const items = await db.collection('items').find({ case_id: caseId }).toArray();
-        if (!items || items.length === 0) {
-            return res.status(404).json({ error: 'No items found in this case' });
-        }
-        
-        // Generate roll items for animation
-        const rollItems = [];
-        const totalRollItems = 100; // Количество предметов в прокрутке
-
-        // Rarity probabilities
-        const rarityProbabilities = {
-            rare_special: 0.01,
-            covert: 0.04,
-            classified: 0.10,
-            restricted: 0.20,
-            mil_spec: 0.65
-        };
-        
-        // Select rarity and item
-        const random = Math.random();
-        let selectedRarity = 'mil_spec';
-        let cumulativeProbability = 0;
-        
-        for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
-            cumulativeProbability += probability;
-            if (random <= cumulativeProbability) {
-                selectedRarity = rarity;
-                break;
-            }
-        }
-        
-        // Select winning item
-        const itemsOfSelectedRarity = items.filter(item => item.rarity === selectedRarity);
-        let selectedItem;
-        
-        if (itemsOfSelectedRarity.length > 0) {
-            selectedItem = itemsOfSelectedRarity[Math.floor(Math.random() * itemsOfSelectedRarity.length)];
-        } else {
-            const milSpecItems = items.filter(item => item.rarity === 'mil_spec');
-            selectedItem = milSpecItems.length > 0 
-                ? milSpecItems[Math.floor(Math.random() * milSpecItems.length)]
-                : items[Math.floor(Math.random() * items.length)];
-        }
-
-        // Generate roll items array ensuring the selected item is at a specific position
-        const winningPosition = 80; // Position where the winning item will appear
-        for (let i = 0; i < totalRollItems; i++) {
-            if (i === winningPosition) {
-                rollItems.push(selectedItem);
-            } else {
-                // Generate random item for other positions
-                const randomRarity = Math.random();
-                let itemRarity = 'mil_spec';
-                let cumulative = 0;
-                
-                for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
-                    cumulative += probability;
-                    if (randomRarity <= cumulative) {
-                        itemRarity = rarity;
-                        break;
-                    }
-                }
-                
-                const itemsOfRarity = items.filter(item => item.rarity === itemRarity);
-                const randomItem = itemsOfRarity.length > 0
-                    ? itemsOfRarity[Math.floor(Math.random() * itemsOfRarity.length)]
-                    : items[Math.floor(Math.random() * items.length)];
-                
-                rollItems.push(randomItem);
-            }
-        }
-        
-        // Create unique item copy for inventory
-        const itemForInventory = {
-            ...selectedItem,
-            inventoryId: `${selectedItem.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        };
-        
-        // Update user inventory and balance
-        await db.collection('users').updateOne(
-            { steamId: userId },
-            { 
-                $push: { inventory: itemForInventory },
-                $inc: { coins: -caseData.price }
-            }
-        );
-        
-        // Record case opening
-        await db.collection('case_openings').insertOne({
-            userId,
-            caseId,
-            itemId: selectedItem.id,
-            inventoryId: itemForInventory.inventoryId,
-            timestamp: new Date()
-        });
-        
-        // Send response with both roll items and winning item
-        res.json({
-            success: true,
-            rollItems: rollItems,
-            winningItem: itemForInventory,
-            winningPosition: winningPosition,
-            remainingCoins: user.coins - caseData.price
-        });
-    } catch (error) {
-        console.error('Error opening case:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
 
     // Error handlers
     app.use((req, res) => {

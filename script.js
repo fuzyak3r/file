@@ -1,16 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Обработка прямых переходов на профиль
-    const handleProfileClick = (e) => {
-        if (e.target.matches('a[href="/profile"]')) {
-            e.preventDefault();
-            const currentPath = window.location.pathname;
-            if (currentPath !== '/profile') {
-                window.location.href = '/profile';
-            }
-        }
-    };
-    document.addEventListener('click', handleProfileClick);
-
     // Video loading handler
     const video = document.getElementById('video-background');
     const loadingOverlay = document.getElementById('loading-overlay');
@@ -23,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 500);
         });
         
+        // Fallback if video takes too long to load
         setTimeout(function() {
             loadingOverlay.style.opacity = '0';
             setTimeout(function() {
@@ -46,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     window.addEventListener('scroll', checkFade);
-    checkFade();
+    checkFade(); // Check on initial load
     
     // Mobile menu toggle
     const menuToggle = document.querySelector('.menu-toggle');
@@ -65,11 +54,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const navLinks = document.querySelector('.nav-links');
             if (!navLinks) return;
             
+            // Find the Steam login button or container
             const loginItem = Array.from(navLinks.children).find(item => 
                 item.querySelector('.steam-login') !== null
             );
             
             if (data.authenticated && data.user) {
+                // User is logged in, replace login button with user profile
                 if (loginItem) {
                     loginItem.innerHTML = `
                         <div class="user-profile">
@@ -78,24 +69,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     `;
                     
+                    // Добавляем класс для стилизации
                     loginItem.classList.add('user-profile-container');
                     
+                    // Создаем выпадающее меню заранее и добавляем его
                     const dropdown = document.createElement('ul');
                     dropdown.className = 'profile-dropdown';
                     dropdown.innerHTML = `
-                        <li><a href="/profile" onclick="event.preventDefault(); window.location.href='/profile';">Профиль</a></li>
+                        <li><a href="/profile">Профиль</a></li>
                         <li><a href="/auth/logout">Выйти</a></li>
                     `;
                     loginItem.appendChild(dropdown);
                     
+                    // Добавляем обработчик клика для отображения/скрытия выпадающего меню
                     const userProfile = loginItem.querySelector('.user-profile');
                     if (userProfile) {
                         userProfile.addEventListener('click', function(e) {
                             e.preventDefault();
                             e.stopPropagation();
                             
+                            // Переключаем класс active для выпадающего меню
                             dropdown.classList.toggle('active');
                             
+                            // Если меню открыто, добавляем обработчик для закрытия при клике вне меню
                             if (dropdown.classList.contains('active')) {
                                 function closeDropdown(e) {
                                     if (!loginItem.contains(e.target)) {
@@ -104,25 +100,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                     }
                                 }
                                 
+                                // Добавляем обработчик с задержкой, чтобы избежать немедленного закрытия
                                 setTimeout(() => {
                                     document.addEventListener('click', closeDropdown);
                                 }, 10);
                             }
                         });
                     }
-
-                    dropdown.addEventListener('click', function(e) {
-                        const target = e.target;
-                        if (target.tagName === 'A') {
-                            e.preventDefault();
-                            const href = target.getAttribute('href');
-                            if (href === '/profile') {
-                                window.location.href = '/profile';
-                            } else {
-                                window.location.href = href;
-                            }
-                        }
-                    });
                 }
             }
         })
