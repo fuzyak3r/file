@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const MongoClient = require('mongodb').MongoClient;
 const MongoStore = require('connect-mongo');
+const { ObjectId } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,458 +17,729 @@ const PORT = process.env.PORT || 3000;
 let db;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/csreforge';
 
-MongoClient.connect(MONGO_URI, { useUnifiedTopology: true })
-  .then(client => {
-    console.log('Connected to MongoDB');
-    db = client.db();
-    
-    // Initialize app after database connection
-    initializeApp();
-  })
-  .catch(error => {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
-  });
-
-function initializeApp() {
-  // Security middleware
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com"],
-        fontSrc: ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
-        imgSrc: ["'self'", "data:", "steamcdn-a.akamaihd.net", "avatars.steamstatic.com", "*.steamusercontent.com"],
-        connectSrc: ["'self'"],
-        mediaSrc: ["'self'", "remo.uk.to"],
-      }
-    }
-  }));
-
-  // Rate limiting
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-
-  app.use('/auth/', limiter);
-  app.use('/api/cases/open', rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 5, // Limit each IP to 5 case opens per minute
-    standardHeaders: true,
-    legacyHeaders: false,
-  }));
-
-  // Session configuration
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    name: 'reforge_session',
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: MONGO_URI,
-      collectionName: 'sessions'
-    }),
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    }
-  }));
-
-  // Initialize Passport
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // JSON parsing
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
-  // Steam Strategy configuration
-  passport.use(new SteamStrategy({
-      returnURL: `${process.env.BASE_URL || 'http://localhost:3000'}/auth/steam/return`,
-      realm: process.env.BASE_URL || 'http://localhost:3000',
-      apiKey: process.env.STEAM_API_KEY
-    },
-    async function(identifier, profile, done) {
-      try {
-        // User data to store
-        const userData = {
-          steamId: profile.id,
-          displayName: profile.displayName,
-          photos: profile.photos,
-          profileUrl: profile._json.profileurl,
-          lastLogin: new Date(),
-          coins: 1000, // Starting coins for new users
+// Database Initialization Function
+async function initializeDatabase() {
+    try {
+        // Check collections existence
+        const collections = await db.listCollections().toArray();
+        const collectionNames = collections.map(c => c.name);
+        
+        // List of all required collections
+        const requiredCollections = {
+            'cases': 'Cases collection',
+            'items': 'Items collection',
+            'rarities': 'Rarities collection',
+            'users': 'Users collection',
+            'case_openings': 'Case openings collection',
+            'sessions': 'Sessions collection'
         };
 
-        // Check if user exists and update or create
-        const user = await db.collection('users').findOneAndUpdate(
-          { steamId: profile.id },
-          { 
-            $set: {
-              displayName: profile.displayName,
-              photos: profile.photos,
-              profileUrl: profile._json.profileurl,
-              lastLogin: new Date()
-            },
-            $setOnInsert: { coins: 1000, inventory: [] }
-          },
-          { upsert: true, returnDocument: 'after' }
-        );
+        // Create missing collections
+        for (const [collectionName, description] of Object.entries(requiredCollections)) {
+            if (!collectionNames.includes(collectionName)) {
+                try {
+                    if (collectionName === 'cases' || collectionName === 'items' || collectionName === 'rarities') {
+                        console.error(`${description} not found! Please run the Python initialization script first.`);
+                        return false;
+                    } else {
+                        // Create other required collections
+                        await db.createCollection(collectionName);
+                        
+                        // Create indexes for new collections immediately
+                        if (collectionName === 'case_openings') {
+                            await db.collection(collectionName).createIndex({ userId: 1 });
+                            await db.collection(collectionName).createIndex({ timestamp: 1 });
+                        } else if (collectionName === 'users') {
+                            await db.collection(collectionName).createIndex({ steamId: 1 }, { unique: true });
+                        }
+                        
+                        console.log(`Created ${description}`);
+                    }
+                } catch (error) {
+                    if (error.code !== 48) { // Ignore "collection already exists" error
+                        console.error(`Error creating collection ${collectionName}:`, error);
+                    }
+                }
+            }
+        }
 
-        return done(null, userData);
-      } catch (error) {
-        console.error('Error during auth:', error);
-        return done(error);
-      }
-    }
-  ));
+        // Check data existence for required collections
+        const casesCount = await db.collection('cases').countDocuments();
+        const itemsCount = await db.collection('items').countDocuments();
+        const raritiesCount = await db.collection('rarities').countDocuments();
 
-  // Serialize user into session
-  passport.serializeUser((user, done) => {
-    done(null, user.steamId);
-  });
+        if (casesCount === 0 || itemsCount === 0 || raritiesCount === 0) {
+            console.error('Required collections are empty! Please run the Python initialization script first.');
+            return false;
+        }
 
-  // Deserialize user from session
-  passport.deserializeUser(async (steamId, done) => {
-    try {
-      const user = await db.collection('users').findOne({ steamId });
-      done(null, user);
+        console.log(`Database check completed successfully:`);
+        console.log(`- Cases: ${casesCount}`);
+        console.log(`- Items: ${itemsCount}`);
+        console.log(`- Rarities: ${raritiesCount}`);
+        
+        return true;
     } catch (error) {
-      done(error);
+        console.error('Error checking database:', error);
+        return false;
     }
-  });
+}
 
-  // Serve static files
-  app.use(express.static(path.join(__dirname, '/')));
-
-  // Create folder for case images if it doesn't exist
-  const fs = require('fs');
-  const casesDir = path.join(__dirname, 'images/cases');
-  const skinsDir = path.join(__dirname, 'images/skins');
-  
-  if (!fs.existsSync(casesDir)) {
-    fs.mkdirSync(casesDir, { recursive: true });
-  }
-  
-  if (!fs.existsSync(skinsDir)) {
-    fs.mkdirSync(skinsDir, { recursive: true });
-  }
-
-  // Check if user is authenticated
-  function isAuthenticated(req, res, next) {
-    if (req.isAuthenticated()) {
-      return next();
+// Create Indexes Function
+async function createIndexes() {
+    try {
+        const collections = ['users', 'cases', 'items', 'case_openings'];
+        
+        for (const collectionName of collections) {
+            try {
+                const collection = db.collection(collectionName);
+                const existingIndexes = await collection.listIndexes().toArray();
+                
+                switch(collectionName) {
+                    case 'users':
+                        if (!existingIndexes.some(index => index.name === 'steamId_1')) {
+                            await collection.createIndex({ steamId: 1 }, { unique: true });
+                        }
+                        break;
+                    case 'cases':
+                        if (!existingIndexes.some(index => index.name === 'id_1')) {
+                            await collection.createIndex({ id: 1 });
+                        }
+                        break;
+                    case 'items':
+                        if (!existingIndexes.some(index => index.name === 'case_id_1')) {
+                            await collection.createIndex({ case_id: 1 });
+                        }
+                        if (!existingIndexes.some(index => index.name === 'rarity_1')) {
+                            await collection.createIndex({ rarity: 1 });
+                        }
+                        break;
+                    case 'case_openings':
+                        if (!existingIndexes.some(index => index.name === 'userId_1')) {
+                            await collection.createIndex({ userId: 1 });
+                        }
+                        if (!existingIndexes.some(index => index.name === 'timestamp_1')) {
+                            await collection.createIndex({ timestamp: 1 });
+                        }
+                        break;
+                }
+            } catch (error) {
+                if (error.code === 26) { // NamespaceNotFound
+                    await db.createCollection(collectionName);
+                    console.log(`Created missing collection: ${collectionName}`);
+                    const collection = db.collection(collectionName);
+                    if (collectionName === 'case_openings') {
+                        await collection.createIndex({ userId: 1 });
+                        await collection.createIndex({ timestamp: 1 });
+                    }
+                } else {
+                    console.error(`Error creating indexes for ${collectionName}:`, error);
+                }
+            }
+        }
+        console.log('Indexes checked and created successfully');
+    } catch (error) {
+        console.error('Error managing indexes:', error);
     }
-    res.redirect('/');
-  }
+}
 
-  // Steam auth routes
-  app.get('/auth/steam', passport.authenticate('steam'));
+// Database Integrity Check Function
+async function checkDatabaseIntegrity() {
+    try {
+        // Check rarities
+        const raritiesCount = await db.collection('rarities').countDocuments();
+        if (raritiesCount === 0) {
+            const defaultRarities = [
+                { id: 'consumer', name: 'Consumer Grade', color: '#b0c3d9' },
+                { id: 'industrial', name: 'Industrial Grade', color: '#5e98d9' },
+                { id: 'mil_spec', name: 'Mil-Spec Grade', color: '#4b69ff' },
+                { id: 'restricted', name: 'Restricted', color: '#8847ff' },
+                { id: 'classified', name: 'Classified', color: '#d32ce6' },
+                { id: 'covert', name: 'Covert', color: '#eb4b4b' },
+                { id: 'rare_special', name: 'Rare Special', color: '#ffae39' }
+            ];
+            await db.collection('rarities').insertMany(defaultRarities);
+            console.log('Default rarities created');
+        }
 
-  app.get('/auth/steam/return',
-    passport.authenticate('steam', { failureRedirect: '/' }),
-    (req, res) => {
-      res.redirect('/');
+        // Check and repair user data
+        const users = await db.collection('users').find({}).toArray();
+        for (const user of users) {
+            const updates = {};
+            
+            if (!user.inventory) {
+                updates.inventory = [];
+            }
+            
+            if (!user.coins && user.coins !== 0) {
+                updates.coins = 0;
+            }
+            
+            if (user.inventory) {
+                const fixedInventory = user.inventory
+                    .filter(item => item && item.rarity)
+                    .map(item => ({
+                        ...item,
+                        inventoryId: item.inventoryId || `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                    }));
+                
+                if (fixedInventory.length !== user.inventory.length) {
+                    updates.inventory = fixedInventory;
+                }
+            }
+            
+            if (Object.keys(updates).length > 0) {
+                await db.collection('users').updateOne(
+                    { steamId: user.steamId },
+                    { $set: updates }
+                );
+            }
+        }
+        
+        console.log('Database integrity check completed');
+    } catch (error) {
+        console.error('Error during database integrity check:', error);
     }
-  );
+}
 
-  // Logout route
-  app.get('/auth/logout', (req, res) => {
-    req.logout(function(err) {
-      if (err) { return next(err); }
-      res.redirect('/');
+// MongoDB Connection and App Initialization
+MongoClient.connect(MONGO_URI, { useUnifiedTopology: true })
+    .then(async client => {
+        console.log('Connected to MongoDB');
+        db = client.db();
+        
+        try {
+            // Initialize database first
+            const dbInitSuccess = await initializeDatabase();
+            if (!dbInitSuccess) {
+                console.error('Database initialization failed. Please run the Python initialization script first.');
+                process.exit(1);
+            }
+
+            // Now initialize indexes and check integrity
+            await Promise.all([
+                createIndexes(),
+                checkDatabaseIntegrity()
+            ]);
+
+            // Start the application
+            initializeApp();
+        } catch (error) {
+            console.error('Error during initialization:', error);
+            process.exit(1);
+        }
+    })
+    .catch(error => {
+        console.error('MongoDB connection error:', error);
+        process.exit(1);
     });
-  });
 
-  // User profile route
-  app.get('/profile', isAuthenticated, (req, res) => {
-    res.sendFile(path.join(__dirname, 'profile.html'));
-  });
-
-  // Cases page route
-  app.get('/cases', (req, res) => {
-    res.sendFile(path.join(__dirname, 'cases.html'));
-  });
-
-  // Inventory page route
-  app.get('/inventory', isAuthenticated, (req, res) => {
-    res.sendFile(path.join(__dirname, 'inventory.html'));
-  });
-
-  // API routes
-  
-  // Get user data
-  app.get('/api/user', (req, res) => {
-    if (req.isAuthenticated()) {
-      res.json({
-        authenticated: true,
-        user: {
-          id: req.user.steamId,
-          displayName: req.user.displayName,
-          photos: req.user.photos,
-          profileUrl: req.user.profileUrl,
-          coins: req.user.coins || 0
+// Application initialization function
+function initializeApp() {
+    // Security middleware
+    app.use(helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com"],
+                styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com"],
+                fontSrc: ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
+                imgSrc: ["'self'", "data:", "steamcdn-a.akamaihd.net", "avatars.steamstatic.com", "*.steamusercontent.com"],
+                connectSrc: ["'self'"],
+                mediaSrc: ["'self'", "remo.uk.to"],
+            }
         }
-      });
-    } else {
-      res.json({
-        authenticated: false
-      });
-    }
-  });
+    }));
 
-  // Get all cases
-  app.get('/api/cases', async (req, res) => {
-    try {
-      const cases = await db.collection('cases').find({}).toArray();
-      res.json(cases);
-    } catch (error) {
-      console.error('Error fetching cases:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
+    // Rate limiting
+    app.use('/auth/', rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 100,
+        standardHeaders: true,
+        legacyHeaders: false,
+    }));
 
-  // Get cases by year
-  app.get('/api/cases/year/:year', async (req, res) => {
-    try {
-      const { year } = req.params;
-      const cases = await db.collection('cases').find({ year }).toArray();
-      res.json(cases);
-    } catch (error) {
-      console.error('Error fetching cases by year:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
+    app.use('/api/cases/open', rateLimit({
+        windowMs: 1 * 60 * 1000,
+        max: 5,
+        standardHeaders: true,
+        legacyHeaders: false,
+    }));
 
-  // Get case details
-  app.get('/api/cases/:caseId', async (req, res) => {
-    try {
-      const { caseId } = req.params;
-      const caseData = await db.collection('cases').findOne({ id: caseId });
-      
-      if (!caseData) {
-        return res.status(404).json({ error: 'Case not found' });
-      }
-      
-      const items = await db.collection('items').find({ case_id: caseId }).toArray();
-      
-      // Group items by rarity
-      const rarities = await db.collection('rarities').find({}).toArray();
-      const raritiesMap = {};
-      rarities.forEach(rarity => {
-        raritiesMap[rarity.id] = rarity;
-      });
-      
-      const itemsByRarity = {};
-      items.forEach(item => {
-        if (!itemsByRarity[item.rarity]) {
-          itemsByRarity[item.rarity] = [];
+    // Session configuration
+    app.use(session({
+        secret: process.env.SESSION_SECRET || 'your-secret-key',
+        name: 'reforge_session',
+        resave: false,
+        saveUninitialized: false,
+        store: MongoStore.create({
+            mongoUrl: MONGO_URI,
+            collectionName: 'sessions'
+        }),
+        cookie: {
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: true,
+            maxAge: 7 * 24 * 60 * 60 * 1000
         }
-        itemsByRarity[item.rarity].push(item);
-      });
-      
-      res.json({
-        ...caseData,
-        items: itemsByRarity,
-        rarities: raritiesMap
-      });
-    } catch (error) {
-      console.error('Error fetching case details:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
+    }));
 
-  // Open a case
-  app.post('/api/cases/open/:caseId', isAuthenticated, async (req, res) => {
-    try {
-      const { caseId } = req.params;
-      const userId = req.user.steamId;
-      
-      // Find the case
-      const caseData = await db.collection('cases').findOne({ id: caseId });
-      if (!caseData) {
-        return res.status(404).json({ error: 'Case not found' });
-      }
-      
-      // Check if user has enough coins
-      const user = await db.collection('users').findOne({ steamId: userId });
-      if (user.coins < caseData.price) {
-        return res.status(400).json({ error: 'Not enough coins' });
-      }
-      
-      // Get all items from the case
-      const items = await db.collection('items').find({ case_id: caseId }).toArray();
-      if (items.length === 0) {
-        return res.status(404).json({ error: 'No items found in this case' });
-      }
-      
-      // Calculate probabilities based on rarity
-      // Rare special: 1%, Covert: 4%, Classified: 10%, Restricted: 20%, Mil-spec: 65%
-      const rarityProbabilities = {
-        rare_special: 0.01,
-        covert: 0.04,
-        classified: 0.10,
-        restricted: 0.20,
-        mil_spec: 0.65,
-        industrial: 0, // Included for completeness but not used in cases
-        consumer: 0, // Included for completeness but not used in cases
-      };
-      
-      // Determine the rarity based on probability
-      const random = Math.random();
-      let selectedRarity;
-      let cumulativeProbability = 0;
-      
-      for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
-        cumulativeProbability += probability;
-        if (random <= cumulativeProbability) {
-          selectedRarity = rarity;
-          break;
+    // Passport initialization
+    app.use(passport.initialize());
+    app.use(passport.session());
+
+    // Body parsing
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
+    // Steam authentication strategy
+    passport.use(new SteamStrategy({
+        returnURL: `${process.env.BASE_URL || 'http://localhost:3000'}/auth/steam/return`,
+        realm: process.env.BASE_URL || 'http://localhost:3000',
+        apiKey: process.env.STEAM_API_KEY
+    },
+    async function(identifier, profile, done) {
+        try {
+            const userData = {
+                steamId: profile.id,
+                displayName: profile.displayName,
+                photos: profile.photos,
+                profileUrl: profile._json.profileurl,
+                lastLogin: new Date()
+            };
+
+            const user = await db.collection('users').findOneAndUpdate(
+                { steamId: profile.id },
+                { 
+                    $set: {
+                        displayName: profile.displayName,
+                        photos: profile.photos,
+                        profileUrl: profile._json.profileurl,
+                        lastLogin: new Date()
+                    },
+                    $setOnInsert: { coins: 1000, inventory: [] }
+                },
+                { upsert: true, returnDocument: 'after' }
+            );
+
+            return done(null, userData);
+        } catch (error) {
+            console.error('Error during auth:', error);
+            return done(error);
         }
-      }
-      
-      // Filter items by the selected rarity
-      const itemsOfSelectedRarity = items.filter(item => item.rarity === selectedRarity);
-      
-      // If no items of this rarity, fall back to mil-spec
-      const availableItems = itemsOfSelectedRarity.length > 0 ? itemsOfSelectedRarity : items.filter(item => item.rarity === 'mil_spec');
-      
-      // Select a random item from the available items
-      const selectedItem = availableItems[Math.floor(Math.random() * availableItems.length)];
-      
-      // Add the item to the user's inventory and deduct coins
-      await db.collection('users').updateOne(
-        { steamId: userId },
-        { 
-          $push: { inventory: selectedItem },
-          $inc: { coins: -caseData.price }
+    }));
+
+    // Passport serialization
+    passport.serializeUser((user, done) => {
+        done(null, user.steamId);
+    });
+
+    passport.deserializeUser(async (steamId, done) => {
+        try {
+            const user = await db.collection('users').findOne({ steamId });
+            done(null, user);
+        } catch (error) {
+            done(error);
         }
-      );
-      
-      // Record the case opening history
-      await db.collection('case_openings').insertOne({
-        userId,
-        caseId,
-        itemId: selectedItem.id,
-        timestamp: new Date()
-      });
-      
-      res.json({
-        success: true,
-        item: selectedItem,
-        remainingCoins: user.coins - caseData.price
-      });
-    } catch (error) {
-      console.error('Error opening case:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
+    });
 
-  // Get user inventory
-  app.get('/api/inventory', isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user.steamId;
-      const user = await db.collection('users').findOne({ steamId: userId });
-      
-      if (!user || !user.inventory) {
-        return res.json({ inventory: [] });
-      }
-      
-      // Get rarities for each item
-      const rarities = await db.collection('rarities').find({}).toArray();
-      const raritiesMap = {};
-      rarities.forEach(rarity => {
-        raritiesMap[rarity.id] = rarity;
-      });
-      
-      // Add rarity info to each item
-      const inventoryWithRarities = user.inventory.map(item => ({
-        ...item,
-        rarityInfo: raritiesMap[item.rarity]
-      }));
-      
-      res.json({ 
-        inventory: inventoryWithRarities,
-        coins: user.coins
-      });
-    } catch (error) {
-      console.error('Error fetching inventory:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
+    // Static files
+    app.use(express.static(path.join(__dirname, '/')));
 
-  // Get user profile data for profile page
-  app.get('/api/profile', isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user.steamId;
-      
-      // Get user data
-      const user = await db.collection('users').findOne({ steamId: userId });
-      
-      // Get case opening statistics
-      const openings = await db.collection('case_openings').find({ userId }).toArray();
-      
-      // Count openings by case type
-      const caseOpeningStats = {};
-      for (const opening of openings) {
-        caseOpeningStats[opening.caseId] = (caseOpeningStats[opening.caseId] || 0) + 1;
-      }
-      
-      // Get rarities for inventory display
-      const rarities = await db.collection('rarities').find({}).toArray();
-      const raritiesMap = {};
-      rarities.forEach(rarity => {
-        raritiesMap[rarity.id] = rarity;
-      });
-      
-      // Prepare inventory for display
-      const inventory = user.inventory || [];
-      const inventoryByRarity = {};
-      
-      inventory.forEach(item => {
-        if (!inventoryByRarity[item.rarity]) {
-          inventoryByRarity[item.rarity] = [];
+    // Authentication middleware
+    function isAuthenticated(req, res, next) {
+        if (req.isAuthenticated()) {
+            return next();
         }
-        inventoryByRarity[item.rarity].push(item);
-      });
-      
-      res.json({
-        user: {
-          id: user.steamId,
-          displayName: user.displayName,
-          photos: user.photos,
-          profileUrl: user.profileUrl,
-          coins: user.coins,
-          lastLogin: user.lastLogin
-        },
-        stats: {
-          totalCasesOpened: openings.length,
-          caseOpeningStats
-        },
-        inventory: {
-          total: inventory.length,
-          byRarity: inventoryByRarity
-        },
-        rarities: raritiesMap
-      });
-    } catch (error) {
-      console.error('Error fetching profile data:', error);
-      res.status(500).json({ error: 'Internal server error' });
+        res.redirect('/');
     }
-  });
 
-  // Handle 404
-  app.use((req, res) => {
-    res.status(404).sendFile(path.join(__dirname, '404.html'));
-  });
+    // Routes
+    // Authentication routes
+    app.get('/auth/steam', passport.authenticate('steam'));
 
-  // Start server
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
+    app.get('/auth/steam/return',
+        passport.authenticate('steam', { failureRedirect: '/' }),
+        (req, res) => {
+            res.redirect('/');
+        }
+    );
+
+    app.get('/auth/logout', (req, res) => {
+        req.logout(function(err) {
+            if (err) { return next(err); }
+            res.redirect('/');
+        });
+    });
+
+    // Page routes
+    app.get('/profile', isAuthenticated, (req, res) => {
+        res.sendFile(path.join(__dirname, 'profile.html'));
+    });
+
+    app.get('/cases', (req, res) => {
+        res.sendFile(path.join(__dirname, 'cases.html'));
+    });
+
+    app.get('/inventory', isAuthenticated, (req, res) => {
+        res.sendFile(path.join(__dirname, 'inventory.html'));
+    });
+
+    // API Routes
+    app.get('/api/user', (req, res) => {
+        if (req.isAuthenticated()) {
+            res.json({
+                authenticated: true,
+                user: {
+                    id: req.user.steamId,
+                    displayName: req.user.displayName,
+                    photos: req.user.photos,
+                    profileUrl: req.user.profileUrl,
+                    coins: req.user.coins || 0
+                }
+            });
+        } else {
+            res.json({
+                authenticated: false
+            });
+        }
+    });
+
+    // Get all cases
+    app.get('/api/cases', async (req, res) => {
+        try {
+            const cases = await db.collection('cases').find({}).toArray();
+            if (!cases || cases.length === 0) {
+                return res.status(404).json({ error: 'No cases found in database' });
+            }
+            res.json(cases);
+        } catch (error) {
+            console.error('Error fetching cases:', error);
+            res.status(500).json({ error: 'Internal server error while fetching cases' });
+        }
+    });
+
+    // Get case details
+    app.get('/api/cases/:caseId', async (req, res) => {
+        try {
+            const { caseId } = req.params;
+            const caseData = await db.collection('cases').findOne({ id: caseId });
+            
+            if (!caseData) {
+                return res.status(404).json({ error: 'Case not found' });
+            }
+            
+            const items = await db.collection('items').find({ case_id: caseId }).toArray();
+            if (!items || items.length === 0) {
+                return res.status(404).json({ error: 'No items found in this case' });
+            }
+            
+            const rarities = await db.collection('rarities').find({}).toArray();
+            if (!rarities || rarities.length === 0) {
+                return res.status(500).json({ error: 'Rarity data not found' });
+            }
+            
+            const raritiesMap = {};
+            rarities.forEach(rarity => {
+                if (rarity && rarity.id) {
+                    raritiesMap[rarity.id] = rarity;
+                }
+            });
+            
+            const itemsByRarity = {};
+            items.forEach(item => {
+                if (item && item.rarity) {
+                    if (!itemsByRarity[item.rarity]) {
+                        itemsByRarity[item.rarity] = [];
+                    }
+                    itemsByRarity[item.rarity].push(item);
+                }
+            });
+            
+            res.json({
+                ...caseData,
+                items: itemsByRarity,
+                rarities: raritiesMap
+            });
+        } catch (error) {
+            console.error('Error fetching case details:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // Open case
+    app.post('/api/cases/open/:caseId', isAuthenticated, async (req, res) => {
+        try {
+            const { caseId } = req.params;
+            const userId = req.user.steamId;
+            
+            const caseData = await db.collection('cases').findOne({ id: caseId });
+            if (!caseData) {
+                return res.status(404).json({ error: 'Case not found' });
+            }
+            
+            const user = await db.collection('users').findOne({ steamId: userId });
+            if (!user || user.coins < caseData.price) {
+                return res.status(400).json({ error: 'Not enough coins' });
+            }
+            
+            const items = await db.collection('items').find({ case_id: caseId }).toArray();
+            if (!items || items.length === 0) {
+                return res.status(404).json({ error: 'No items found in this case' });
+            }
+            
+            const rarityProbabilities = {
+                rare_special: 0.01,
+                covert: 0.04,
+                classified: 0.10,
+                restricted: 0.20,
+                mil_spec: 0.65
+            };
+            
+            const random = Math.random();
+            let selectedRarity = 'mil_spec';
+            let cumulativeProbability = 0;
+            
+            for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
+                cumulativeProbability += probability;
+                if (random <= cumulativeProbability) {
+                    selectedRarity = rarity;
+                    break;
+                }
+            }
+            
+            const itemsOfSelectedRarity = items.filter(item => item.rarity === selectedRarity);
+            let selectedItem;
+            
+            if (itemsOfSelectedRarity.length > 0) {
+                selectedItem = itemsOfSelectedRarity[Math.floor(Math.random() * itemsOfSelectedRarity.length)];
+            } else {
+                const milSpecItems = items.filter(item => item.rarity === 'mil_spec');
+                selectedItem = milSpecItems.length > 0 
+                    ? milSpecItems[Math.floor(Math.random() * milSpecItems.length)]
+                    : items[Math.floor(Math.random() * items.length)];
+            }
+            
+            const itemForInventory = {
+                ...selectedItem,
+                inventoryId: `${selectedItem.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+            };
+            
+            await db.collection('users').updateOne(
+                { steamId: userId },
+                { 
+                    $push: { inventory: itemForInventory },
+                    $inc: { coins: -caseData.price }
+                }
+            );
+            
+            await db.collection('case_openings').insertOne({
+                userId,
+                caseId,
+                itemId: selectedItem.id,
+                inventoryId: itemForInventory.inventoryId,
+                timestamp: new Date()
+            });
+            
+            res.json({
+                success: true,
+                item: itemForInventory,
+                remainingCoins: user.coins - caseData.price
+            });
+        } catch (error) {
+            console.error('Error opening case:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // Get user inventory
+    app.get('/api/inventory', isAuthenticated, async (req, res) => {
+        try {
+            const userId = req.user.steamId;
+            const user = await db.collection('users').findOne({ steamId: userId });
+            
+            if (!user) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            
+            const rarities = await db.collection('rarities').find({}).toArray();
+            if (!rarities || rarities.length === 0) {
+                return res.status(500).json({ error: 'Rarity data not found' });
+            }
+
+            const raritiesMap = {};
+            rarities.forEach(rarity => {
+                if (rarity && rarity.id) {
+                    raritiesMap[rarity.id] = rarity;
+                }
+            });
+            
+            const inventory = user.inventory || [];
+            const inventoryWithRarities = inventory
+                .filter(item => item && item.rarity)
+                .map(item => ({
+                    ...item,
+                    rarityInfo: raritiesMap[item.rarity] || null
+                }));
+            
+            res.json({ 
+                inventory: inventoryWithRarities,
+                coins: user.coins || 0
+            });
+        } catch (error) {
+            console.error('Error fetching inventory:', error);
+            res.status(500).json({ error: 'Internal server error while fetching inventory' });
+        }
+    });
+
+    // Get user profile data
+    app.post('/api/cases/open/:caseId', isAuthenticated, async (req, res) => {
+    try {
+        const { caseId } = req.params;
+        const userId = req.user.steamId;
+        
+        // Get case data
+        const caseData = await db.collection('cases').findOne({ id: caseId });
+        if (!caseData) {
+            return res.status(404).json({ error: 'Case not found' });
+        }
+        
+        // Check user balance
+        const user = await db.collection('users').findOne({ steamId: userId });
+        if (!user || user.coins < caseData.price) {
+            return res.status(400).json({ error: 'Not enough coins' });
+        }
+        
+        // Get case items
+        const items = await db.collection('items').find({ case_id: caseId }).toArray();
+        if (!items || items.length === 0) {
+            return res.status(404).json({ error: 'No items found in this case' });
+        }
+        
+        // Generate roll items for animation
+        const rollItems = [];
+        const totalRollItems = 100; // Количество предметов в прокрутке
+
+        // Rarity probabilities
+        const rarityProbabilities = {
+            rare_special: 0.01,
+            covert: 0.04,
+            classified: 0.10,
+            restricted: 0.20,
+            mil_spec: 0.65
+        };
+        
+        // Select rarity and item
+        const random = Math.random();
+        let selectedRarity = 'mil_spec';
+        let cumulativeProbability = 0;
+        
+        for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
+            cumulativeProbability += probability;
+            if (random <= cumulativeProbability) {
+                selectedRarity = rarity;
+                break;
+            }
+        }
+        
+        // Select winning item
+        const itemsOfSelectedRarity = items.filter(item => item.rarity === selectedRarity);
+        let selectedItem;
+        
+        if (itemsOfSelectedRarity.length > 0) {
+            selectedItem = itemsOfSelectedRarity[Math.floor(Math.random() * itemsOfSelectedRarity.length)];
+        } else {
+            const milSpecItems = items.filter(item => item.rarity === 'mil_spec');
+            selectedItem = milSpecItems.length > 0 
+                ? milSpecItems[Math.floor(Math.random() * milSpecItems.length)]
+                : items[Math.floor(Math.random() * items.length)];
+        }
+
+        // Generate roll items array ensuring the selected item is at a specific position
+        const winningPosition = 80; // Position where the winning item will appear
+        for (let i = 0; i < totalRollItems; i++) {
+            if (i === winningPosition) {
+                rollItems.push(selectedItem);
+            } else {
+                // Generate random item for other positions
+                const randomRarity = Math.random();
+                let itemRarity = 'mil_spec';
+                let cumulative = 0;
+                
+                for (const [rarity, probability] of Object.entries(rarityProbabilities)) {
+                    cumulative += probability;
+                    if (randomRarity <= cumulative) {
+                        itemRarity = rarity;
+                        break;
+                    }
+                }
+                
+                const itemsOfRarity = items.filter(item => item.rarity === itemRarity);
+                const randomItem = itemsOfRarity.length > 0
+                    ? itemsOfRarity[Math.floor(Math.random() * itemsOfRarity.length)]
+                    : items[Math.floor(Math.random() * items.length)];
+                
+                rollItems.push(randomItem);
+            }
+        }
+        
+        // Create unique item copy for inventory
+        const itemForInventory = {
+            ...selectedItem,
+            inventoryId: `${selectedItem.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        };
+        
+        // Update user inventory and balance
+        await db.collection('users').updateOne(
+            { steamId: userId },
+            { 
+                $push: { inventory: itemForInventory },
+                $inc: { coins: -caseData.price }
+            }
+        );
+        
+        // Record case opening
+        await db.collection('case_openings').insertOne({
+            userId,
+            caseId,
+            itemId: selectedItem.id,
+            inventoryId: itemForInventory.inventoryId,
+            timestamp: new Date()
+        });
+        
+        // Send response with both roll items and winning item
+        res.json({
+            success: true,
+            rollItems: rollItems,
+            winningItem: itemForInventory,
+            winningPosition: winningPosition,
+            remainingCoins: user.coins - caseData.price
+        });
+    } catch (error) {
+        console.error('Error opening case:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+    // Error handlers
+    app.use((req, res) => {
+        res.status(404).sendFile(path.join(__dirname, '404.html'));
+    });
+
+    app.use((err, req, res, next) => {
+        console.error('Error occurred:', err);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+    });
+
+    // Handle unhandled rejections
+    process.on('unhandledRejection', (reason, promise) => {
+        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
+
+    // Start server
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
 }

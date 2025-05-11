@@ -387,121 +387,127 @@
             const continueBtn = document.getElementById('continue-btn');
             
             if (openCaseBtn) {
-                openCaseBtn.addEventListener('click', async function() {
-                    if (!currentCaseId) return;
-                    
-                    try {
-                        // Close the case details modal
-                        caseModal.style.display = 'none';
-                        
-                        // Open the case opening animation modal
-                        openingModal.style.display = 'block';
-                        
-                        // Show the roulette and hide results
-                        document.querySelector('.roulette-container').style.display = 'flex';
-                        resultContainer.style.display = 'none';
-                        
-                        // Fetch items for the roulette animation
-                        const caseResponse = await fetch(`/api/cases/${currentCaseId}`);
-                        const caseData = await caseResponse.json();
-                        
-                        // Create a pool of items for the roulette based on rarity
-                        let allItems = [];
-                        for (const rarity in caseData.items) {
-                            if (Array.isArray(caseData.items[rarity])) {
-                                allItems = allItems.concat(caseData.items[rarity]);
-                            }
-                        }
-                        
-                        // Generate roulette items (150 items for smooth animation)
-                        rouletteElement.innerHTML = '';
-                        for (let i = 0; i < 150; i++) {
-                            const randomItem = allItems[Math.floor(Math.random() * allItems.length)];
-                            const rarityInfo = caseData.rarities[randomItem.rarity];
-                            
-                            const itemElement = document.createElement('div');
-                            itemElement.className = 'roulette-item';
-                            itemElement.style.borderColor = rarityInfo.color;
-                            
-                            itemElement.innerHTML = `
-                                <img src="${randomItem.image}" alt="${randomItem.name}">
-                                <div class="item-name" style="color: ${rarityInfo.color}">${randomItem.name}</div>
-                            `;
-                            
-                            rouletteElement.appendChild(itemElement);
-                        }
-                        
-                        // Start the animation
-                        rouletteElement.style.transition = 'none';
-                        rouletteElement.style.transform = 'translateX(0)';
-                        
-                        // Force reflow
-                        void rouletteElement.offsetWidth;
-                        
-                        // Make the API call to open the case
-                        const response = await fetch(`/api/cases/open/${currentCaseId}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        
-                        if (!response.ok) {
-                            const errorData = await response.json();
-                            throw new Error(errorData.error || 'Failed to open case');
-                        }
-                        
-                        const result = await response.json();
-                        
-                        // Update user coins
-                        userCoins = result.remainingCoins;
-                        document.getElementById('coins-amount').textContent = userCoins;
-                        
-                        // Find the obtained item in the roulette
-                        const targetItem = result.item;
-                        const rarityInfo = caseData.rarities[targetItem.rarity];
-                        
-                        // Insert the won item in the middle of the roulette
-                        const middleIndex = Math.floor(rouletteElement.children.length / 2);
-                        const middleItem = rouletteElement.children[middleIndex];
-                        
-                        middleItem.style.borderColor = rarityInfo.color;
-                        middleItem.innerHTML = `
-                            <img src="${targetItem.image}" alt="${targetItem.name}">
-                            <div class="item-name" style="color: ${rarityInfo.color}">${targetItem.name}</div>
-                        `;
-                        
-                        // Calculate the target position for the animation
-                        const itemWidth = 150; // Width of each roulette item + margin
-                        const targetPosition = -(middleIndex * itemWidth - (window.innerWidth / 2 - itemWidth / 2));
-                        
-                        // Start the animation
-                        rouletteElement.style.transition = 'transform 5s cubic-bezier(0.15, 0.9, 0.3, 1)';
-                        rouletteElement.style.transform = `translateX(${targetPosition}px)`;
-                        
-                        // After animation completes, show the result
-                        setTimeout(() => {
-                            document.querySelector('.roulette-container').style.display = 'none';
-                            
-                            // Show the result
-                            resultItem.innerHTML = `
-                                <div class="result-item-card" style="border-color: ${rarityInfo.color}">
-                                    <img src="${targetItem.image}" alt="${targetItem.name}" class="result-item-img">
-                                    <div class="result-item-name" style="color: ${rarityInfo.color}">${targetItem.name}</div>
-                                    <div class="result-item-rarity" style="color: ${rarityInfo.color}">${rarityInfo.name}</div>
-                                </div>
-                            `;
-                            
-                            resultContainer.style.display = 'flex';
-                        }, 5500);
-                        
-                    } catch (error) {
-                        console.error('Error opening case:', error);
-                        alert(error.message || 'Error opening case. Please try again later.');
-                        openingModal.style.display = 'none';
-                    }
-                });
+    openCaseBtn.addEventListener('click', async function() {
+        if (!currentCaseId) return;
+        
+        try {
+            // Close the case details modal
+            caseModal.style.display = 'none';
+            
+            // Open the case opening animation modal
+            openingModal.style.display = 'block';
+            
+            // Show the roulette and hide results
+            document.querySelector('.roulette-container').style.display = 'flex';
+            resultContainer.style.display = 'none';
+
+            // First, make the API call to open the case
+            const response = await fetch(`/api/cases/open/${currentCaseId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to open case');
             }
+            
+            const result = await response.json();
+            
+            // Update user coins
+            userCoins = result.remainingCoins;
+            document.getElementById('coins-amount').textContent = userCoins;
+
+            // Get case data for rarity information
+            const caseResponse = await fetch(`/api/cases/${currentCaseId}`);
+            const caseData = await caseResponse.json();
+            
+            // Create the roulette with the guaranteed winning item
+            const targetItem = result.item;
+            const rarityInfo = caseData.rarities[targetItem.rarity];
+            
+            // Generate items for the roulette
+            const rouletteItemsCount = 150;
+            const winningPosition = Math.floor(rouletteItemsCount / 2); // Middle position
+            
+            rouletteElement.innerHTML = '';
+            
+            // Create pool of items excluding the winning item
+            const itemPool = [];
+            for (const rarity in caseData.items) {
+                if (Array.isArray(caseData.items[rarity])) {
+                    itemPool.push(...caseData.items[rarity].filter(item => 
+                        item.id !== targetItem.id
+                    ));
+                }
+            }
+
+            // Generate roulette items
+            for (let i = 0; i < rouletteItemsCount; i++) {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'roulette-item';
+                
+                if (i === winningPosition) {
+                    // Insert winning item
+                    itemElement.style.borderColor = rarityInfo.color;
+                    itemElement.innerHTML = `
+                        <img src="${targetItem.image}" alt="${targetItem.name}">
+                        <div class="item-name" style="color: ${rarityInfo.color}">${targetItem.name}</div>
+                    `;
+                } else {
+                    // Insert random item from pool
+                    const randomItem = itemPool[Math.floor(Math.random() * itemPool.length)];
+                    const itemRarityInfo = caseData.rarities[randomItem.rarity];
+                    itemElement.style.borderColor = itemRarityInfo.color;
+                    itemElement.innerHTML = `
+                        <img src="${randomItem.image}" alt="${randomItem.name}">
+                        <div class="item-name" style="color: ${itemRarityInfo.color}">${randomItem.name}</div>
+                    `;
+                }
+                
+                rouletteElement.appendChild(itemElement);
+            }
+
+            // Start the animation
+            rouletteElement.style.transition = 'none';
+            rouletteElement.style.transform = 'translateX(0)';
+            
+            // Force reflow
+            void rouletteElement.offsetWidth;
+
+            // Calculate the target position for the animation
+            const itemWidth = 150; // Width of each roulette item + margin
+            const targetPosition = -(winningPosition * itemWidth - (window.innerWidth / 2 - itemWidth / 2));
+            
+            // Start the animation
+            rouletteElement.style.transition = 'transform 5s cubic-bezier(0.15, 0.9, 0.3, 1)';
+            rouletteElement.style.transform = `translateX(${targetPosition}px)`;
+            
+            // After animation completes, show the result
+            setTimeout(() => {
+                document.querySelector('.roulette-container').style.display = 'none';
+                
+                // Show the result
+                resultItem.innerHTML = `
+                    <div class="result-item-card" style="border-color: ${rarityInfo.color}">
+                        <img src="${targetItem.image}" alt="${targetItem.name}" class="result-item-img">
+                        <div class="result-item-name" style="color: ${rarityInfo.color}">${targetItem.name}</div>
+                        <div class="result-item-rarity" style="color: ${rarityInfo.color}">${rarityInfo.name}</div>
+                    </div>
+                `;
+                
+                resultContainer.style.display = 'flex';
+            }, 5500);
+            
+        } catch (error) {
+            console.error('Error opening case:', error);
+            alert(error.message || 'Error opening case. Please try again later.');
+            openingModal.style.display = 'none';
+        }
+    });
+}
             
             if (continueBtn) {
                 continueBtn.addEventListener('click', function() {
