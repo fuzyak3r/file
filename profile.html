@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль - Counter-Strike: Reforge</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <img src="images/logo.png" alt="CS: Reforge" class="logo-image">
+                </div>
+                <ul class="nav-links">
+                    <li><a href="/">Главная</a></li>
+                    <li><a href="/#community">Сообщество</a></li>
+                    <li id="user-container">
+                        <!-- User profile will be inserted here via JavaScript -->
+                    </li>
+                </ul>
+                <div class="menu-toggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="content-container">
+            <h1 class="content-title">Ваш профиль</h1>
+            
+            <div class="content-section" id="profile-info">
+                <!-- Profile information will be inserted here -->
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="images/logo.png" alt="CS: Reforge" class="footer-logo-image">
+                </div>
+                <div class="footer-links">
+                    <a href="rules.html">Правила</a>
+                    <a href="support.html">Поддержка</a>
+                    <a href="faq.html">FAQ</a>
+                </div>
+            </div>
+            <div class="copyright">
+                &copy; 2025 Counter-Strike: Reforge. Все права защищены.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Function to handle dropdown toggle
+        function setupProfileDropdown(profileElement, dropdownElement) {
+            if (!profileElement || !dropdownElement) return;
+            
+            // Toggle dropdown on click
+            profileElement.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                dropdownElement.classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!profileElement.contains(e.target) && !dropdownElement.contains(e.target)) {
+                    dropdownElement.classList.remove('active');
+                }
+            });
+        }
+
+        // Fetch user profile data
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/user');
+                const data = await response.json();
+                
+                if (data.authenticated && data.user) {
+                    const { user } = data;
+                    
+                    // Update navigation
+                    const userContainer = document.getElementById('user-container');
+                    if (userContainer) {
+                        userContainer.innerHTML = `
+                            <div class="user-profile">
+                                <img src="${user.photos[0].value}" alt="${user.displayName}" class="user-avatar">
+                                <span class="user-name">${user.displayName}</span>
+                            </div>
+                            <div class="profile-dropdown">
+                                <ul>
+                                    <li><a href="/profile"><i class="fas fa-user"></i> Профиль</a></li>
+                                    <li><a href="/auth/logout"><i class="fas fa-sign-out-alt"></i> Выйти</a></li>
+                                </ul>
+                            </div>
+                        `;
+                        
+                        // Setup dropdown functionality
+                        const profileElement = userContainer.querySelector('.user-profile');
+                        const dropdownElement = userContainer.querySelector('.profile-dropdown');
+                        setupProfileDropdown(profileElement, dropdownElement);
+                    }
+                    
+                    // Update profile info
+                    document.getElementById('profile-info').innerHTML = `
+                        <div class="profile-card">
+                            <div class="profile-header">
+                                <img src="${user.photos[0].value}" alt="${user.displayName}" class="profile-avatar">
+                                <div class="profile-details">
+                                    <h2>${user.displayName}</h2>
+                                    <a href="${user.profileUrl}" target="_blank" class="steam-profile-link">
+                                        <i class="fab fa-steam"></i> Профиль Steam
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="profile-stats">
+                                <div class="stat-item">
+                                    <span class="stat-value">0</span>
+                                    <span class="stat-label">Игр сыграно</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value">0</span>
+                                    <span class="stat-label">Достижений</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value">0</span>
+                                    <span class="stat-label">Друзей в Reforge</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="profile-card">
+                            <div class="profile-header">
+                                <div class="profile-details" style="width: 100%;">
+                                    <h2>Статистика</h2>
+                                </div>
+                            </div>
+                            <div class="profile-stats">
+                                <div class="stat-item">
+                                    <span class="stat-value">0</span>
+                                    <span class="stat-label">Убийств</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value">0</span>
+                                    <span class="stat-label">Смертей</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value">0</span>
+                                    <span class="stat-label">K/D</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Redirect to home if not authenticated
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                document.getElementById('profile-info').innerHTML = `
+                    <div class="error-message">
+                        Произошла ошибка при загрузке данных профиля. Пожалуйста, попробуйте позже.
+                    </div>
+                `;
+            }
+        });
+
+        // Toggle mobile menu
+        document.querySelector('.menu-toggle').addEventListener('click', () => {
+            document.querySelector('.nav-links').classList.toggle('active');
+        });
+    </script>
+</body>
+</html>
