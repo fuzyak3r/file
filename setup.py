@@ -125,7 +125,8 @@ weapons = [
     {"title": "Driver Gloves", "type": "gloves"},
     {"title": "Moto Gloves", "type": "gloves"},
     {"title": "Specialist Gloves", "type": "gloves"},
-    {"title": "Sport Gloves", "type": "gloves"}
+    {"title": "Sport Gloves", "type": "gloves"},
+    {"title": "Hydra Gloves", "type": "gloves"}
 ]
 
 # Insert weapons
@@ -197,6 +198,204 @@ def get_case_image(case_name):
     else:
         # Fallback to a generic case image
         return "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapon_cases/crate_community_1_png.png"
+
+# Добавляем словарь с изображениями ножей
+knife_images = {
+    "Bayonet": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_bayonet_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_aq_blued_light_png.png",
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_bayonet_sp_tape_urban_light_png.png"
+    },
+    "Flip Knife": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_knife_flip_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_aq_blued_light_png.png", 
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_flip_sp_tape_urban_light_png.png"
+    },
+    "Gut Knife": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_knife_gut_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_aq_blued_light_png.png",
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_gut_sp_tape_urban_light_png.png"
+    },
+    "Karambit": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_knife_karambit_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_aq_blued_light_png.png",
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_karambit_sp_tape_urban_light_png.png"
+    },
+    "M9 Bayonet": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_knife_m9_bayonet_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_aq_blued_light_png.png",
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_m9_bayonet_sp_tape_urban_light_png.png"
+    },
+    "Huntsman Knife": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_knife_tactical_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_aq_blued_light_png.png",
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_tactical_sp_tape_urban_light_png.png"
+    },
+    "Butterfly Knife": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_knife_butterfly_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_aq_blued_light_png.png",
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_butterfly_sp_tape_urban_light_png.png"
+    },
+    "Falchion Knife": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_knife_falchion_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_aq_blued_light_png.png",
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_falchion_sp_tape_urban_light_png.png"
+    },
+    "Shadow Daggers": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_knife_push_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_aq_blued_light_png.png",
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_push_sp_tape_urban_light_png.png"
+    },
+    "Bowie Knife": {
+        "Vanilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_knife_survival_bowie_png.png",
+        "Blue Steel": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_aq_blued_light_png.png",
+        "Boreal Forest": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_hy_forest_boreal_light_png.png",
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_aq_oiled_light_png.png",
+        "Crimson Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_hy_webs_light_png.png",
+        "Fade": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_aa_fade_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_hy_ddpat_light_png.png",
+        "Night": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_so_night_light_png.png",
+        "Safari Mesh": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_sp_mesh_tan_light_png.png",
+        "Scorched": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_sp_dapple_light_png.png",
+        "Slaughter": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_am_zebra_light_png.png",
+        "Stained": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_aq_forced_light_png.png",
+        "Urban Masked": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_knife_survival_bowie_sp_tape_urban_light_png.png"
+    }
+}
+
+# Glove images
+glove_images = {
+    "Bloodhound Gloves": {
+        "Snakebite": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/studded_bloodhound_gloves_bloodhound_snakeskin_brass_light_png.png",
+        "Bronzed": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/studded_bloodhound_gloves_bloodhound_metallic_light_png.png",
+        "Charred": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/studded_bloodhound_gloves_bloodhound_black_silver_light_png.png",
+        "Guerrilla": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/studded_bloodhound_gloves_bloodhound_guerrilla_light_png.png"
+    },
+    "Driver Gloves": {
+        "Crimson Weave": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/slick_gloves_slick_red_light_png.png",
+        "Convoy": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/slick_gloves_slick_military_light_png.png",
+        "Lunar Weave": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/slick_gloves_slick_black_light_png.png",
+        "Diamondback": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/slick_gloves_slick_snakeskin_yellow_light_png.png"
+    },
+    "Hand Wraps": {
+        "Badlands": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/leather_handwraps_handwrap_fabric_orange_camo_light_png.png",
+        "Leather": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/leather_handwraps_handwrap_leathery_light_png.png",
+        "Duct Tape": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/leather_handwraps_handwrap_leathery_ducttape_light_png.png"
+    },
+    "Moto Gloves": {
+        "Cool Mint": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/motorcycle_gloves_motorcycle_triangle_blue_light_png.png",
+        "Boom!": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/motorcycle_gloves_motorcycle_mono_boom_light_png.png",
+        "Spearmint": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/motorcycle_gloves_motorcycle_mint_triangle_light_png.png",
+        "Eclipse": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/motorcycle_gloves_motorcycle_basic_black_light_png.png"
+    },
+    "Specialist Gloves": {
+        "Crimson Kimono": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/specialist_gloves_specialist_kimono_diamonds_red_light_png.png",
+        "Emerald Web": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/specialist_gloves_specialist_emerald_web_light_png.png",
+        "Forest DDPAT": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/specialist_gloves_specialist_ddpat_green_camo_light_png.png",
+        "Foundation": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/specialist_gloves_specialist_orange_white_light_png.png"
+    },
+    "Sport Gloves": {
+        "Superconductor": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/sporty_gloves_sporty_light_blue_light_png.png",
+        "Hedge Maze": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/sporty_gloves_sporty_green_light_png.png",
+        "Arid": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/sporty_gloves_sporty_military_light_png.png"
+    },
+    "Hydra Gloves": {
+        "Case Hardened": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/studded_hydra_gloves_bloodhound_hydra_case_hardened_light_png.png",
+        "Emerald": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/studded_hydra_gloves_bloodhound_hydra_black_green_light_png.png",
+        "Rattler": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/studded_hydra_gloves_bloodhound_hydra_snakeskin_brass_light_png.png",
+        "Mangrove": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/studded_hydra_gloves_bloodhound_hydra_green_leather_mesh_brass_light_png.png"
+    }
+}
 
 cases_with_skins = [
     {
@@ -298,7 +497,7 @@ cases_with_skins = [
             {"weapon": "CZ75-Auto", "pattern": "Crimson Web", "quality": "Mil-Spec", "image": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_cz75a_hy_webs_light_png.png"},
             {"weapon": "P2000", "pattern": "Pulse", "quality": "Mil-Spec", "image": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_hkp2000_cu_p2000_pulse_light_png.png"}
         ],
-        "knives": []
+        "knives": ["Bayonet", "Flip Knife", "Gut Knife", "Karambit", "M9 Bayonet"]
     },
     {
         "title": "Operation Phoenix Weapon Case",
@@ -339,7 +538,7 @@ cases_with_skins = [
         ],
         "knives": ["Huntsman Knife"]
     },
-        {
+    {
         "title": "Operation Breakout Weapon Case",
         "skins": [
             {"weapon": "M4A1-S", "pattern": "Cyrex", "quality": "Covert", "image": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_m4a1_silencer_cu_m4a1s_cyrex_light_png.png"},
@@ -374,7 +573,7 @@ cases_with_skins = [
             {"weapon": "CZ75-Auto", "pattern": "Hexane", "quality": "Mil-Spec", "image": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_cz75a_hy_bluehex_light_png.png"},
             {"weapon": "Negev", "pattern": "Bratatat", "quality": "Mil-Spec", "image": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_negev_cu_bratatat_negev_light_png.png"}
         ],
-        "knives": ["Bayonet", "Flip Knife", "Gut Knife", "Karambit", "M9 Bayonet"]
+        "knives": ["Butterfly Knife"]
     },
     {
         "title": "Operation Vanguard Weapon Case",
@@ -497,7 +696,7 @@ cases_with_skins = [
             {"weapon": "P2000", "pattern": "Imperial", "quality": "Mil-Spec", "image": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_hkp2000_am_p2000_imperial_red_light_png.png"},
             {"weapon": "Sawed-Off", "pattern": "Yorick", "quality": "Mil-Spec", "image": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_sawedoff_gs_sawedoff_necromancer_light_png.png"}
         ],
-        "knives": []
+        "knives": ["Bayonet", "Flip Knife", "Gut Knife", "Karambit", "M9 Bayonet"]
     },
     {
         "title": "Operation Wildfire Case",
@@ -651,7 +850,7 @@ cases_with_skins = [
             {"weapon": "Glock-18", "pattern": "Off World", "quality": "Mil-Spec", "image": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_glock_cu_glock_indigo_light_png.png"},
             {"weapon": "USP-S", "pattern": "Blueprint", "quality": "Mil-Spec", "image": "https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/default_generated/weapon_usp_silencer_cu_usps_blueprint_light_png.png"}
         ],
-        "gloves": ["Bloodhound Gloves", "Driver Gloves", "Hand Wraps", "Moto Gloves", "Specialist Gloves", "Sport Gloves"]
+        "gloves": ["Bloodhound Gloves", "Driver Gloves", "Hand Wraps", "Moto Gloves", "Specialist Gloves", "Sport Gloves", "Hydra Gloves"]
     },
     {
         "title": "Spectrum 2 Case",
@@ -701,7 +900,7 @@ for case_data in cases_with_skins:
         "release_date": release_date,
         "num_skins": len(case_data["skins"]) + (
             len(case_data.get("knives", [])) * 13 if "knives" in case_data else 0
-        ) + (len(case_data.get("gloves", [])) * 4 if "gloves" in case_data else 0)
+        ) + (len(case_data.get("gloves", [])) * len(glove_images.get(case_data.get("gloves", [""])[0], {})) if "gloves" in case_data else 0)
     }
     
     # Insert the case and store its ID
@@ -757,7 +956,7 @@ for case_data in cases_with_skins:
                 "max_float": max_float,
                 "created_at": datetime.now()
             })
-    
+
     # Insert the knife skins if this case has knives
     if "knives" in case_data:
         # List of standard knife finishes
@@ -777,9 +976,13 @@ for case_data in cases_with_skins:
             for finish in standard_finishes:
                 knife_price = round(random.uniform(50, 500) * (1 + 0.1 * years_old), 2)
                 
-                # Generic knife image URL based on knife type
-                knife_lower = knife.lower().replace(' ', '_').replace('-', '')
-                knife_image = f"https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_{knife_lower}_png.png"
+                # Get knife image URL based on knife type and finish
+                knife_image = knife_images.get(knife, {}).get(finish, None)
+                
+                if not knife_image:
+                    # Fallback to generic knife image
+                    knife_lower = knife.lower().replace(' ', '_').replace('-', '')
+                    knife_image = f"https://raw.githubusercontent.com/ByMykel/counter-strike-image-tracker/main/static/panorama/images/econ/weapons/base_weapons/weapon_{knife_lower}_png.png"
                 
                 # Float range for knives
                 min_float = round(random.uniform(0.0, 0.08), 2)
@@ -805,9 +1008,42 @@ for case_data in cases_with_skins:
                         "created_at": datetime.now()
                     })
 
+    # Insert the glove skins if this case has gloves
+    if "gloves" in case_data:
+        for glove_type in case_data["gloves"]:
+            weapon_id = weapon_ids.get(glove_type)
+            if not weapon_id:
+                print(f"Warning: Could not find weapon ID for {glove_type}")
+                continue
+            
+            # Get available finishes for this glove type
+            finishes = glove_images.get(glove_type, {})
+            
+            for finish_name, finish_image in finishes.items():
+                glove_price = round(random.uniform(100, 800) * (1 + 0.1 * years_old), 2)
+                
+                # Float range for gloves
+                min_float = round(random.uniform(0.06, 0.15), 2)
+                max_float = round(random.uniform(0.4, 0.9), 2)
+                
+                # Gloves don't have StatTrak variants, so insert only non-StatTrak
+                db.skins.insert_one({
+                    "pattern": {"title": finish_name},
+                    "weapon": {"_id": weapon_id, "title": glove_type, "type": "gloves"},
+                    "case_id": case_id,
+                    "quality": {"_id": quality_ids["Exceedingly Rare"], "title": "Exceedingly Rare", "color": "#ffae39", "order": 7},
+                    "stattrak": False,
+                    "souvenir": False,
+                    "price": glove_price,
+                    "image": finish_image,
+                    "min_float": min_float,
+                    "max_float": max_float,
+                    "created_at": datetime.now()
+                })
+
 print("\nБаза данных успешно заполнена!")
 print(f"Создано {len(cases_with_skins)} кейсов")
 print(f"Создано {db.skins.count_documents({})} скинов")
 print("Все изображения взяты напрямую из URL")
-print("Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): 2025-05-13 18:12:16")
+print("Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): 2025-05-17 07:53:40")
 print("Current User's Login: copilotpublic_andrtro")
